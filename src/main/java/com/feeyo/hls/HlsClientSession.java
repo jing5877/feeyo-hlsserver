@@ -104,7 +104,7 @@ public class HlsClientSession {
         		
         	} else if ( tsIndexs != null && newTsIndexs != null ) {
         		
-        		if ( !Arrays.equals(tsIndexs, newTsIndexs) && tsIndexs[tsIndexs.length - 1] < newTsIndexs[newTsIndexs.length - 1]) {
+        		if ( tsIndexs[tsIndexs.length - 1] < newTsIndexs[newTsIndexs.length - 1] ) {
         			// 后往前移
         			for(int i =0; i< tsIndexs.length -1; i++) {
         				tsIndexs[i] = tsIndexs[i+1];

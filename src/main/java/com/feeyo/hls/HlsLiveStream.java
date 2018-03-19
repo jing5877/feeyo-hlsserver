@@ -1,6 +1,5 @@
 package com.feeyo.hls;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,12 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.feeyo.hls.ts.TsSegment;
+import com.feeyo.hls.ts.segmenter.AacH264MixedTsSegmenter;
+import com.feeyo.hls.ts.segmenter.AacTranscodingTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AacTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AbstractTsSegmenter;
-import com.feeyo.hls.ts.segmenter.AacH264MixedTsSegmenter;
-import com.feeyo.hls.ts.segmenter.H264TsSegmenter;
 import com.feeyo.hls.ts.segmenter.H264TranscodingTsSegmenter;
-import com.feeyo.hls.ts.segmenter.AacTranscodingTsSegmenter;
+import com.feeyo.hls.ts.segmenter.H264TsSegmenter;
 import com.google.common.primitives.Longs;
 
 
@@ -69,14 +68,11 @@ public class HlsLiveStream {
     private ReadWriteLock _lock = new ReentrantReadWriteLock();
     
     // ADS
-    private static AdsMagr hlsAdsWatchdog;												// 1,2,3
+    private static AdsMagr adsMagr;												// 1,2,3
     
     static {
-    	if (hlsAdsWatchdog == null) {
-            hlsAdsWatchdog = new AdsMagr(System.getProperty("log4jHome") + File.separator + "data");
-            hlsAdsWatchdog.checkAndConfigure();
-            new Thread(hlsAdsWatchdog, "ADS watch dog").start();
-        }
+    	if (adsMagr == null)
+            adsMagr = new AdsMagr();
     }
     
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
@@ -178,7 +174,7 @@ public class HlsLiveStream {
     	
     	TsSegment tsSegment = null;
     	if ( index < 4 ) {
-    		List<TsSegment> adTsSegments = hlsAdsWatchdog.getAdsTsSegments();
+    		List<TsSegment> adTsSegments = adsMagr.getAdsTsSegments();
     		tsSegment = adTsSegments.get( (int)index - 1);
     	} else {
     		tsSegment = tsSegments.get( index );
