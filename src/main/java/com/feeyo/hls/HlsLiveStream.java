@@ -79,7 +79,8 @@ public class HlsLiveStream {
         }
     }
     
-    public HlsLiveStream(long streamId, int streamType, List<String> aliasNames, float sampleRate, int sampleSizeInBits, int channels, int fps) {
+    public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
+    		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
         
     	this.mtime = System.currentTimeMillis();
     	
@@ -88,10 +89,10 @@ public class HlsLiveStream {
     	
     	this.aliasNames = aliasNames;
     	
-        this.sampleRate = sampleRate;
-        this.sampleSizeInBits = sampleSizeInBits;
-        this.channels = channels;
-        this.fps = fps;
+        this.sampleRate = sampleRate == null ? 8000F : sampleRate;
+        this.sampleSizeInBits = sampleSizeInBits == null ? 16: sampleSizeInBits;
+        this.channels = channels == null ? 1 : channels;
+        this.fps = fps == null ? 25: fps;
         
         
         switch( streamType ) {
@@ -112,9 +113,7 @@ public class HlsLiveStream {
     		break;
     	}
         
-        if ( sampleRate != 0 && sampleSizeInBits != 0 && channels != 0 && fps != 0) {
-        	tsSegmenter.initialize(sampleRate, sampleSizeInBits, channels, fps);
-        }
+        tsSegmenter.initialize(sampleRate, sampleSizeInBits, channels, fps);
 
         //
         scheduledExecutor.scheduleAtFixedRate(new Runnable() {

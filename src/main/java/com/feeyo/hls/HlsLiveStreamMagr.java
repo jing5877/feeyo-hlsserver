@@ -141,8 +141,8 @@ public class HlsLiveStreamMagr {
     	return false;
     }
     
-    public void startHlsLiveStream(long streamId, int streamType, List<String> aliasNames, 
-    		float sampleRate, int sampleSizeInBits, int channels, int fps) {
+    public void startHlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
+    		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
     	
     	HlsLiveStream liveStream = streamIdToLiveStreamCache.get(streamId);
 		if ( liveStream == null ) {

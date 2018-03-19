@@ -22,6 +22,7 @@ import com.alibaba.fastjson.JSONObject;
 
 import com.feeyo.hls.AdsMagr;
 import com.feeyo.hls.HlsLiveStreamMagr;
+import com.feeyo.hls.HlsLiveStreamType;
 import com.feeyo.net.http.util.HlsRpcUtil;
 
 /**
@@ -47,7 +48,7 @@ public class HlsManageHandler implements IRequestHandler {
 	public void execute(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 		
 		//
-		String reponseTxt = "UNKNOW";
+		String reponseTxt = "ERROR";
 		
 		HttpRequest request = (DefaultHttpRequest) e.getMessage();
 		 
@@ -75,8 +76,26 @@ public class HlsManageHandler implements IRequestHandler {
 				Integer channels = q.getInteger("channels");
 				Integer fps = q.getInteger("fps");
 				
-				
-				// 此处需要进一步校验参数
+				// 参数校验
+				if (streamId == null || streamType == null || (aliasNames == null || aliasNames.isEmpty() ) ) {
+					break;
+					
+				} else {
+					
+					if (  (streamType == HlsLiveStreamType.AAC || streamType == HlsLiveStreamType.PCM ) &&
+							(sampleRate == null || sampleSizeInBits == null || channels == null) ) {
+						break;
+						
+					} else if (  (streamType == HlsLiveStreamType.YUV || streamType == HlsLiveStreamType.H264 ) && fps == null ) {
+						break;
+						
+					} else if ( streamType == HlsLiveStreamType.AAC_H264_MIXED &&
+							(sampleRate == null || sampleSizeInBits == null || channels == null || fps == null )) {
+						break;
+					} 
+				}
+			
+				// 
 				HlsLiveStreamMagr.INSTANCE().startHlsLiveStream(streamId, streamType, aliasNames, 
 						sampleRate, sampleSizeInBits, channels, fps);
 				
@@ -86,9 +105,10 @@ public class HlsManageHandler implements IRequestHandler {
 		case HlsRpcUtil.CLOSE_CODE:
 			{
 				Long streamId = q.getLong("streamId");
-				HlsLiveStreamMagr.INSTANCE().closeHlsLiveStream(streamId);
-				
-				reponseTxt = "OK";
+				if ( streamId != null ) {
+					HlsLiveStreamMagr.INSTANCE().closeHlsLiveStream(streamId);
+					reponseTxt = "OK";
+				}
 			}
 			break;
 		case HlsRpcUtil.CLOSE_ALL_CODE:
@@ -101,19 +121,19 @@ public class HlsManageHandler implements IRequestHandler {
 			{
 				Long streamId = q.getLong("streamId");
 				List<String> aliasNames = (List<String>)q.get("aliasNames");
-				
-				HlsLiveStreamMagr.INSTANCE().updateHlsLiveStreamAliasNamesById(streamId, aliasNames);
-				
-				reponseTxt = "OK";
+				if ( streamId != null && ( aliasNames != null  && !aliasNames.isEmpty()) ) {
+					HlsLiveStreamMagr.INSTANCE().updateHlsLiveStreamAliasNamesById(streamId, aliasNames);
+					reponseTxt = "OK";
+				}
 			}
 			break;
 		case HlsRpcUtil.UPD_ADS_CODE:
-			boolean isHasAds = q.getBoolean("isHasAds");
-			AdsMagr.setHasAds(isHasAds);
-			
-			reponseTxt = "OK";
+			Boolean isHasAds = q.getBoolean("isHasAds");
+			if ( isHasAds != null ) {
+				AdsMagr.setHasAds(isHasAds);	
+				reponseTxt = "OK";
+			}
 			break;
-			
 		}
 		
 		//
