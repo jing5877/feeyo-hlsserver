@@ -1,8 +1,10 @@
 package com.feeyo.net.http;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
@@ -19,17 +21,18 @@ public class HttpServer {
 
 	private ServerBootstrap bootstrap;
 	private Channel channel;
+	
+	private ThreadPoolExecutor bossExecutor =  new ThreadPoolExecutor(6, 32, 30L, TimeUnit.SECONDS, 
+			new SynchronousQueue<Runnable>(), new NamedThreadFactory("NS-BOSS-") );
+	
+	private ThreadPoolExecutor workerExecutor =  new ThreadPoolExecutor(6, 32, 30L, TimeUnit.SECONDS, 
+			new SynchronousQueue<Runnable>(), new NamedThreadFactory("NS-BOSS-") );
 
 	public void startup(int port) {		
 		
 		final int maxContentLength = 1024 * 1024 * 1024;
 		
-		ThreadFactory serverBossTF = new NamedThreadFactory("NETTYSERVER-BOSS-");
-		ThreadFactory serverWorkerTF = new NamedThreadFactory("NETTYSERVER-WORKER-");
-		
-		bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory(
-				Executors.newCachedThreadPool(serverBossTF),  
-				Executors.newCachedThreadPool(serverWorkerTF)));
+		bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory(bossExecutor,  workerExecutor));
 
 		bootstrap.setOption("connectTimeoutMillis", 10000);
 		bootstrap.setOption("reuseAddress", true); 	// kernel optimization
