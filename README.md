@@ -11,10 +11,10 @@ HTTP Live Streaming (HLS) 当前直播服务的主流协议之一，如果您关
 - brew install faac
 - sudo apt-get install libfaac-dev
 
-### 关于流媒体协议 
+### 关于流发布协议 
 UDP packet
 
-|                       | Byte length     | 
+| name                  | byte length     | 
 | :-------------------  | :------------   |
 | Magic code       		| 89 89 (2byte)   | 
 | packetSender      	| 4 byte          |
