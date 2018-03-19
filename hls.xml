@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<feeyo> 
+  
+  <http>
+    <port>8888</port> 
+  </http>  
+  
+  <udp>
+  	<port>7000</port>
+  </udp>
+  
+  <!-- OSS -->
+  <oss>
+    <accessKeyId></accessKeyId>
+    <accessKeySecret></accessKeySecret>
+    <endpoint></endpoint>
+    <bucketName></bucketName>
+    <isOnline></isOnline>
+  </oss>
+  
+</feeyo>
