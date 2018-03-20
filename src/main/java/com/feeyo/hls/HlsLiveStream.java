@@ -174,7 +174,7 @@ public class HlsLiveStream {
     	
     	TsSegment tsSegment = null;
     	if ( index < 4 ) {
-    		List<TsSegment> adTsSegments = adsMagr.getAdsTsSegments();
+    		List<TsSegment> adTsSegments = adsMagr.getAdsTsSegments("audio", 8000F, 16, 1, 25);
     		tsSegment = adTsSegments.get( (int)index - 1);
     	} else {
     		tsSegment = tsSegments.get( index );

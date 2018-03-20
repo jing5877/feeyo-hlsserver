@@ -7,8 +7,6 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +31,7 @@ import com.feeyo.hls.ts.segmenter.H264TsSegmenter;
 import com.feeyo.net.udp.packet.V5PacketType;
 import com.feeyo.util.Globals;
 import com.feeyo.util.Log4jInitializer;
+import com.feeyo.util.Md5;
 
 /**
  * Advertisement watch dog
@@ -44,33 +43,40 @@ public class AdsMagr {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(AdsMagr.class);
 
-	private static Map<String, AdItem> adItemCache = new HashMap<String, AdItem>();
-	private static final int AV_MAX_LENGTH = 20 * 1024 * 1024;
+	private static Map<String, AdItem> md52AdItem = new HashMap<String, AdItem>();
 	
 	private static volatile boolean isHasAds = false;
-	private String adsType = "audio";
 	
-	private int aacRawDataPtr = 0;
-	private int h264RawDataPtr = 0;
-	private int mixedRawDataPtr = 0;
+	private static Map<String, List<TsSegment>> adsTsSegs = new HashMap<String, List<TsSegment>>();
 	
-	private byte[] aacRawDataBuf = null;
-	private byte[] h264RawDataBuf = null;
-	private byte[] mixedRawDataBuf = null;
+	static {
+		
+		if(Globals.getHomeDirectory() == null) {
+			
+			String osName = System.getProperties().getProperty("os.name");
+			final String directory;
 	
-	private AacTsSegmenter aacTsSegmenter = new AacTsSegmenter();
-	private H264TsSegmenter h264TsSegmenter = new H264TsSegmenter();
-	private AacH264MixedTsSegmenter mixedTsSegmenter = new AacH264MixedTsSegmenter();
+			if (osName.indexOf("Window") >= 0 || osName.indexOf("Mac") >= 0 ) {
+				directory = System.getProperty("user.dir");
 	
-
-	private Map<String, List<TsSegment>> adsTsSegs = new HashMap<String, List<TsSegment>>();
-	
-	public AdsMagr() {
-		getAdItemCache();
+			} else {
+				File dir = new File(System.getProperty("user.dir"));
+				directory = dir.getParent();
+			}
+			
+			// 设置 LOG4J
+			Log4jInitializer.configureAndWatch( directory, "log4j.xml", 30000L);
+			
+			//app home
+			Globals.setHomeDirectory(directory);
+			Globals.setConfigName("hls.xml");
+		}
+		
+		initMd52AdItem();
 		genAndCacheAdTsSegments();
 	}
 	
-	private void getAdItemCache() {
+	private static void initMd52AdItem() {
 		
 		StringBuffer path = new StringBuffer();
 		path.append(Globals.getHomeDirectory()).append(File.separator).append("hls.xml");
@@ -110,7 +116,7 @@ public class AdsMagr {
 								break;
 							}
 						}
-						adItemCache.put(adItem.name, adItem);
+						md52AdItem.put(Md5.md5_32(adItem.toString()), adItem);
 					}
 				}
 			}
@@ -120,7 +126,7 @@ public class AdsMagr {
 	}
 	
 	//
-	private void genAndCacheAdTsSegments() {
+	private static void genAndCacheAdTsSegments() {
 		
 		StringBuffer sbf = new StringBuffer();
 		sbf.append(System.getProperty("log4jHome")).append(File.separator).append("data");
@@ -128,22 +134,11 @@ public class AdsMagr {
 		File adsDirectory = new File(sbf.toString());
 		if (adsDirectory.exists() && adsDirectory.isDirectory()) {
 			
-			//sorted
-			Set<String> adnames = adItemCache.keySet();
-			List<String> adNamesSorted = new ArrayList<String>(adnames);
-			Collections.sort(adNamesSorted, new Comparator<String>() {
-				@Override
-				public int compare(String o1, String o2) {
-					return o1.compareToIgnoreCase(o2);
-				}
-			});
-			
-			for(String adname : adnames) {
+			for(AdItem adItem : md52AdItem.values()) {
 				
 				sbf.setLength(0);
-				sbf.append(adsDirectory.getPath()).append(File.separator).append(adname);
+				sbf.append(adsDirectory.getPath()).append(File.separator).append(adItem.name);
 				
-				AdItem adItem = adItemCache.get(adname);
 				File file = new File(sbf.toString());
 				if(file.isFile() && file.exists()) {
 					
@@ -156,30 +151,82 @@ public class AdsMagr {
 						switch(adItem.type) {
 						
 						case "audio":
-							if(aacRawDataBuf == null)
-								aacRawDataBuf = new byte[AV_MAX_LENGTH];
 							
+							AacTsSegmenter aacTsSegmenter = new AacTsSegmenter();
 							aacTsSegmenter.initialize(adItem.sampleRate, adItem.sampleSizeInBits, adItem.channels, adItem.fps);
-							System.arraycopy(adRawData, 0, aacRawDataBuf, aacRawDataPtr, adRawData.length);
-							aacRawDataPtr += adRawData.length;
+							
+							// cache aac ts
+							if(adRawData != null) {
+								
+								List<TsSegment> aacTsSegs = new ArrayList<TsSegment>();
+								aacTsSegmenter = new AacTsSegmenter();
+								aacTsSegmenter.setPts(aacTsSegmenter.getPtsIncPerFrame() * 3); // 3 ： TS_PES_AU_NUM
+								int rawDataPtr = 0;
+								int tsNum = aacTsSegmenter.calcTsNum(adRawData.length);
+
+								byte[] frameBuf = new byte[1024];
+								for (int i = 0; i < tsNum; i++) {
+									if (rawDataPtr + frameBuf.length < adRawData.length) {
+										System.arraycopy(adRawData, rawDataPtr, frameBuf, 0, frameBuf.length);
+										rawDataPtr += frameBuf.length;
+									} else if (rawDataPtr < adRawData.length) {
+										Arrays.fill(frameBuf, (byte) 0);
+										System.arraycopy(adRawData, rawDataPtr, frameBuf, 0, adRawData.length - rawDataPtr);
+										rawDataPtr += frameBuf.length;
+									} else {
+										frameBuf = FaacUtils.ZERO_PCM_DATA;
+									}
+
+									byte[] tsSegment = aacTsSegmenter.getTsBuf(V5PacketType.AAC_STREAM, frameBuf);
+									if (tsSegment != null) {
+										aacTsSegs.add(new  TsSegment((i+1)+".ts",tsSegment,aacTsSegmenter.getTsSegTime(),true));
+									}
+								}
+								
+								adsTsSegs.put("audio", aacTsSegs);
+							}
+							
 							break;
 							
 						case "video":
-							if(h264RawDataBuf == null)
-								h264RawDataBuf = new byte[AV_MAX_LENGTH];
+							
+							H264TsSegmenter h264TsSegmenter = new H264TsSegmenter();
 							
 							h264TsSegmenter.initialize(adItem.sampleRate, adItem.sampleSizeInBits, adItem.channels, adItem.fps);
-							System.arraycopy(adRawData, 0, h264RawDataBuf, h264RawDataPtr, adRawData.length);
-							h264RawDataPtr += adRawData.length;
+							// cache h264 ts
+							if(adRawData != null) {
+								
+								List<TsSegment> h264TsSegs = new ArrayList<TsSegment>();
+								h264TsSegmenter = new H264TsSegmenter();
+								int index = 0;
+								
+								int ptr = 0;
+								while(ptr < adRawData.length) {
+									
+									int len = ptr + 2048 < adRawData.length ?  2048 : adRawData.length - ptr;
+									byte[] dest = new byte[len]; 
+									System.arraycopy(adRawData, ptr, dest, 0, len);
+									byte[]  tsSegment = h264TsSegmenter.getTsBuf(V5PacketType.H264_STREAM, dest);
+									if(tsSegment != null)
+										h264TsSegs.add(new TsSegment((++index)+".ts", tsSegment, h264TsSegmenter.getTsSegTime(),true));
+									ptr += 2048;
+								}
+								
+								adsTsSegs.put("video", h264TsSegs);
+							}
+							
 							break;
 							
 						case "mixed":
-							if(mixedRawDataBuf == null)
-								mixedRawDataBuf = new byte[AV_MAX_LENGTH];
-							
+							AacH264MixedTsSegmenter mixedTsSegmenter = new AacH264MixedTsSegmenter();
 							mixedTsSegmenter.initialize(adItem.sampleRate, adItem.sampleSizeInBits, adItem.channels, adItem.fps);
-							System.arraycopy(adRawData, 0, mixedRawDataBuf, mixedRawDataPtr, adRawData.length);
-							mixedRawDataPtr += adRawData.length;
+							if(adRawData != null) {
+								List<TsSegment> mixedTsSegs = new ArrayList<TsSegment>();
+								// TODO segment
+								
+								adsTsSegs.put("mixed", mixedTsSegs);
+							}
+							
 							break;
 							
 						default :
@@ -199,100 +246,37 @@ public class AdsMagr {
 				}
 			}
 			
-			// cache aac ts
-			if(aacRawDataBuf != null) {
-				
-				List<TsSegment> aacTsSegs = new ArrayList<TsSegment>();
-				aacTsSegmenter = new AacTsSegmenter();
-				aacTsSegmenter.setPts(aacTsSegmenter.getPtsIncPerFrame() * 3); // 3 ： TS_PES_AU_NUM
-				int rawDataPtr = 0;
-				int tsNum = aacTsSegmenter.calcTsNum(aacRawDataPtr);
-
-				byte[] frameBuf = new byte[1024];
-				for (int i = 0; i < tsNum; i++) {
-					if (rawDataPtr + frameBuf.length < aacRawDataPtr) {
-						System.arraycopy(aacRawDataBuf, rawDataPtr, frameBuf, 0, frameBuf.length);
-						rawDataPtr += frameBuf.length;
-					} else if (rawDataPtr < aacRawDataPtr) {
-						Arrays.fill(frameBuf, (byte) 0);
-						System.arraycopy(aacRawDataBuf, rawDataPtr, frameBuf, 0, aacRawDataPtr - rawDataPtr);
-						rawDataPtr += frameBuf.length;
-					} else {
-						frameBuf = FaacUtils.ZERO_PCM_DATA;
-					}
-
-					byte[] tsSegment = aacTsSegmenter.getTsBuf(V5PacketType.AAC_STREAM, frameBuf);
-					if (tsSegment != null) {
-						aacTsSegs.add(new  TsSegment((i+1)+".ts",tsSegment,aacTsSegmenter.getTsSegTime(),true));
-					}
-				}
-				
-				adsTsSegs.put("audio", aacTsSegs);
-			}
-			
-			// cache h264 ts
-			if(h264RawDataBuf != null) {
-				
-				List<TsSegment> h264TsSegs = new ArrayList<TsSegment>();
-				h264TsSegmenter = new H264TsSegmenter();
-				int index = 0;
-				
-				int ptr = 0;
-				while(ptr < h264RawDataPtr) {
-					
-					int len = ptr + 2048 < h264RawDataPtr ?  2048 : h264RawDataPtr - ptr;
-					byte[] dest = new byte[len]; 
-					System.arraycopy(h264RawDataBuf, ptr, dest, 0, len);
-					byte[]  tsSegment = h264TsSegmenter.getTsBuf(V5PacketType.H264_STREAM, dest);
-					if(tsSegment != null)
-						h264TsSegs.add(new TsSegment((++index)+".ts", tsSegment, h264TsSegmenter.getTsSegTime(),true));
-					ptr += 2048;
-				}
-				
-				adsTsSegs.put("video", h264TsSegs);
-			}
-			
-			if(mixedRawDataBuf != null) {
-				List<TsSegment> mixedTsSegs = new ArrayList<TsSegment>();
-				// TODO segment
-				
-				adsTsSegs.put("mixed", mixedTsSegs);
-			}
 		}
 	}
 	
-	
-	public List<TsSegment> getAdsTsSegments() {
-		return adsTsSegs.get(adsType);
+	public List<TsSegment> getAdsTsSegments(String type, float sampleRate, int sampleSizeInBits, int channels, int fps) {
+		
+		if(!isMatchConf(type, sampleRate, sampleSizeInBits, channels, fps)) {
+			LOGGER.debug("## Not match the configure of sample param");
+			return null;
+		}
+		
+		return adsTsSegs.get(type);
 	}
 	
-	public String getAdsType() {
-		return adsType;
+	private boolean isMatchConf(String type, float sampleRate, int sampleSizeInBits, int channels, int fps) {
+		
+		AdItem param = new AdItem();
+		param.type = type;
+		param.sampleRate = sampleRate;
+		param.sampleSizeInBits = sampleSizeInBits;
+		param.channels = channels;
+		param.fps = fps;
+		
+		Set<String> md5List = md52AdItem.keySet();
+		return md5List == null ? false : md5List.contains(Md5.md5_32(param.toString()));
 	}
 
-	public void setAdsType(String adsType) {
-		this.adsType = adsType;
-	}
-
-	private Document loadXmlDoc(String uri) throws Exception {
+	private static Document loadXmlDoc(String uri) throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		Document doc = db.parse(uri);
 		return doc;
-	}
-
-	public void close() {
-		
-		adItemCache.clear();
-		adsTsSegs.clear();
-		
-		aacRawDataPtr = 0;
-		h264RawDataPtr = 0;
-		mixedRawDataPtr = 0;
-		
-		aacRawDataBuf = null;
-		h264RawDataBuf = null;
-		mixedRawDataBuf = null;
 	}
 
 	public static boolean isHasAds() {
@@ -311,34 +295,31 @@ public class AdsMagr {
 		public int sampleSizeInBits;
 		public int channels;
 		public int fps;
+		
+		@Override
+		public String toString() {
+			
+			StringBuffer sbf = new StringBuffer();
+			switch(type) {
+			case "audio":
+				return sbf.append("type").append("audio").append("sampleRate").append(sampleRate)
+						.append("sampleSizeInBits").append(sampleSizeInBits).append("channels").append(channels).toString();
+			case "video":
+				return  sbf.append("type").append("video").append("fps").append(fps).toString();
+			case "mixed":
+				return  sbf.append("type").append("mixed").append("sampleRate").append(sampleRate)
+						.append("sampleSizeInBits").append(sampleSizeInBits).append("channels").append(channels).append("fps").append(fps).toString();
+			}
+			return null;
+		}
 	}
 	
 	public static void main(String[] args) {
 		
-		String osName = System.getProperties().getProperty("os.name");
-		final String directory;
-
-		if (osName.indexOf("Window") >= 0 || osName.indexOf("Mac") >= 0 ) {
-			directory = System.getProperty("user.dir");
-
-		} else {
-			File dir = new File(System.getProperty("user.dir"));
-			directory = dir.getParent();
-		}
-		
-		// 设置 LOG4J
-		Log4jInitializer.configureAndWatch( directory, "log4j.xml", 30000L);
-		
-		//app home
-		Globals.setHomeDirectory(directory);
-		Globals.setConfigName("hls.xml");
-		
 		AdsMagr adsMagr = new AdsMagr();
 		List<TsSegment> tsSegs;
 		
-		tsSegs = adsMagr.getAdsTsSegments();
-		adsMagr.setAdsType("video");
-		tsSegs = adsMagr.getAdsTsSegments();
+		tsSegs = adsMagr.getAdsTsSegments("audio", 8000, 16, 1, 25);
 		if(tsSegs != null)
 			System.out.println(tsSegs.size());
 	}
