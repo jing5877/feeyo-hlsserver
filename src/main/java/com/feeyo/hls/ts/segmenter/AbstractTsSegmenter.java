@@ -106,4 +106,6 @@ public abstract class AbstractTsSegmenter {
 	
 	public abstract void close();
 	
+	public abstract void prepare4nextTs();
+	
 }

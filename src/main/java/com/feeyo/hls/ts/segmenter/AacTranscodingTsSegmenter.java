@@ -43,7 +43,7 @@ public class AacTranscodingTsSegmenter extends AacTsSegmenter {
         }
     }
 
-	private void prepare4nextTs() {
+	public void prepare4nextTs() {
 		aacBufPtr = 0;
 		tsSecsPtr = 0;
 		aacFrameCounter = 0;

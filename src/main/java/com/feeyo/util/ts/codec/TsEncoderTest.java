@@ -10,8 +10,8 @@ import com.feeyo.net.udp.test.TestDataUtil;
 public class TsEncoderTest {
 	
 	public static void main(String[] args) {
-//		AACNoEncTsSegmenter tsSegmenter = new AACNoEncTsSegmenter();
-//		byte[] data = DataUtil.getAudioData();
+//		AacTsSegmenter tsSegmenter = new AacTsSegmenter();
+//		byte[] data = TestDataUtil.getAudioData();
 		
 		H264TsSegmenter tsSegmenter = new H264TsSegmenter();
 		byte[] data = TestDataUtil.getVideoData();

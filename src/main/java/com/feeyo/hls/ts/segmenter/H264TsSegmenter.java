@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import com.feeyo.mpeg2ts.TsWriter;
+import com.feeyo.mpeg2ts.TsWriter.FrameData;
 import com.feeyo.util.ts.codec.TsEncoder;
 
 /**
@@ -70,7 +71,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		prepare4nextTs();
 	}
 	
-	private void prepare4nextTs() {
+	public void prepare4nextTs() {
 		numInGop = 0;
 		tsSecsPtr = 0;
 		tsSegmentLen = 0;
@@ -185,6 +186,77 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 	}
 	
 	
+	//mixed itf
+	public AvcResult process(byte[] rawData) {
+		
+		boolean isNalDelimiter4 = false;
+		byte nextNalType = H264NT_UNUSED_TYPE;
+		
+		int seekPos =  framesBuf.size() >= NAL_DELIMITER.length ? framesBuf.size() - NAL_DELIMITER.length : 0;
+		
+		framesBuf.add(rawData);
+		byte[] src = framesBuf.elements(seekPos, framesBuf.size() - seekPos);
+		
+		//NAL的分隔符位置
+		List<Integer> delimiters = H264NalUtil.kmp(src, NAL_DELIMITER);
+		
+		for(int i=0; i<delimiters.size(); i++) {
+			
+			//取下一帧的帧类型
+			if(delimiters.get(i) + NAL_DELIMITER.length < src.length)
+				nextNalType = src[delimiters.get(i) + NAL_DELIMITER.length];
+			else 
+				break;
+			
+			//取当前完整帧的结束位置
+			int endPos = i==0 ? seekPos + delimiters.get(0) : delimiters.get(i) - delimiters.get(i-1) + (isNalDelimiter4 ? 1: 0);
+			
+			//判断分隔符是否为0x00000001
+			isNalDelimiter4 = ( endPos != 0 && i== 0 && delimiters.get(i) != 0 && src[delimiters.get(i)-1] == 0x00 );
+			endPos = isNalDelimiter4 ? endPos -1 : endPos;
+			
+			if(waitingIDRFrame) {
+				//判断下一次是否为IDR帧
+				if(isIDRFrame(nextNalType))
+					waitingIDRFrame = false;
+				else {
+					//移除IDR帧之前不完整的帧数据
+					framesBuf.remove(0, endPos);
+					continue;
+				}
+			}
+			
+			if(currentNalType == H264NT_SLICE || currentNalType == H264NT_SLICE_IDR) {
+				
+				//取到完整帧数据（其中IDR帧与IDR帧之前的SPS+PPS为一个整体）
+				byte[] avcBuf = framesBuf.remove(0, endPos);
+				
+				if(avcBuf != null && avcBuf.length > NAL_DELIMITER.length) {
+					
+					boolean isLastFrame = (nextNalType & 0x1F) == H264NT_SPS;
+					
+					int frameType = H264NalUtil.getPesFrameType(avcBuf);
+					
+					List<AvcFrame> encodeAvcFrames = getEncodeAvcFrames( new AvcFrame(avcBuf, frameType, -1, getDts()), isLastFrame);
+					
+					return encodeAvcFrames.isEmpty() ? null : new AvcResult(encodeAvcFrames, isLastFrame);
+				}
+				
+			}			
+			//更新currentNalType
+			if(((nextNalType & 0x1F) == H264NT_SLICE_IDR) || ((nextNalType & 0x1F) == H264NT_SLICE)) {
+				currentNalType = nextNalType & 0x1F;
+			}
+			
+			if(waitingIDRFrame)
+				currentNalType = 0;
+			
+		}
+		
+		return null;
+		
+	}
+	
 	
 	@Override
 	public void close() {
@@ -193,7 +265,6 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
             tsSecs = null;
         }
 	}
-
 	
 	private List<AvcFrame> getEncodeAvcFrames(AvcFrame avcFrame, boolean isLastFrame) {
 		List<AvcFrame> avcFrames = new ArrayList<AvcFrame>();
@@ -240,6 +311,24 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 	
 	private boolean isIDRFrame(byte nalType) {
 		return (nalType & 0x1F) == H264NT_SPS ||(nalType & 0x1F) == H264NT_PPS || (nalType & 0x1F) == H264NT_SLICE_IDR;
+	}
+	
+	static class AvcResult{
+		
+		public List<FrameData> avcFrames = new ArrayList<FrameData>();
+		public boolean isLastFrame;
+		
+		public AvcResult(List<AvcFrame> avcFrames, boolean isLastFrame) {
+			for(AvcFrame frame : avcFrames) {
+				FrameData frameData = new FrameData();
+				frameData.buf = frame.payload;
+				frameData.pts = frame.pts;
+				frameData.dts = frame.dts;
+				frameData.isAudio = false;
+				this.avcFrames.add(frameData);
+			}
+			this.isLastFrame = isLastFrame;
+		}
 	}
 	
 	static class AvcFrame{

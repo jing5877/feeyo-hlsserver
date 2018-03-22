@@ -1,6 +1,7 @@
 package com.feeyo.hls.ts.segmenter;
 
 import com.feeyo.mpeg2ts.TsWriter;
+import com.feeyo.mpeg2ts.TsWriter.FrameData;
 
 public class AacTsSegmenter extends AbstractTsSegmenter {
 	
@@ -36,7 +37,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 		prepare4nextTs();
 	}
 
-	private void prepare4nextTs() {
+	public void prepare4nextTs() {
 		aacBufPtr = 0;
 		tsSecsPtr = 0;
 		aacFrameCounter = 0;
@@ -56,9 +57,6 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
         }
         aacBuf = null;
 	}
-
-
-	
 
 	@Override
 	protected byte[] segment(byte rawDataType, byte[] rawData) {
@@ -107,10 +105,27 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
                 }
 				isFirstPes = true;
                 prepare4nextTs();
+                
                 return tsSegment;
             }
         }
         return null;
 	}
-
+	
+	public FrameData process(byte[] rawData) {
+		
+		if (rawData != null && rawData.length > 0 && ++aacFrameCounter % TS_PES_AU_NUM == 0) {
+			
+			pts += ptsIncPerFrame * TS_PES_AU_NUM;		// 计算 PTS
+			FrameData frameData =  new FrameData();
+			frameData.buf = rawData;
+			frameData.pts = pts;
+			frameData.dts = 0;
+			frameData.isAudio = true;
+			return frameData;
+        }	
+		
+		return null;
+	}
+	
 }
