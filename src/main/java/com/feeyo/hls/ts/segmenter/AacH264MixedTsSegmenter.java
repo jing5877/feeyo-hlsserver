@@ -11,8 +11,8 @@ import com.feeyo.net.udp.packet.V5PacketType;
 // 混合流
 public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	
+	private ArrayDeque<AvcResult> avcResultDeque = new ArrayDeque<AvcResult>();
 	private ArrayDeque<FrameData> avcFrameCache = new ArrayDeque<FrameData>();
-	private ArrayDeque<AvcResult> avcFrameWaitDeque = new ArrayDeque<AvcResult>();
 	private ArrayDeque<FrameData> aacFrameCache = new ArrayDeque<FrameData>();
 	
 	private TsWriter tsWriter;
@@ -26,8 +26,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	
 	private boolean isAacFirstPes = true;
 	private boolean isAvcFirstPes = true;
-	
-	private boolean isLastFrame = false;
+	private boolean isLastAvcResult = false;
 	
 	private long lastAacPts = 0;
 	private long lastAvcPts = 0;
@@ -50,83 +49,49 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	protected byte[] transcoding(byte rawDataType, byte[] rawData) {
 		return rawData;
 	}
-
 	
-	//TODO rt
 	@Override
 	protected byte[] segment(byte rawDataType, byte[] rawData) {
+		
 		switch(rawDataType) {
 		case V5PacketType.AAC_STREAM:
+			
 			FrameData aacFrame = aacTsSegmenter.process(rawData);
 			if(aacFrame != null) 
 				aacFrameCache.offer(aacFrame);
-			
 			break;
-			
 		case V5PacketType.H264_STREAM:
+			
 			AvcResult avcResult = h264TsSegmenter.process(rawData);
 			if(avcResult != null) {
 				
-				avcFrameWaitDeque.offer(avcResult);
-				
-				if(isLastFrame) {
+				avcResultDeque.offer(avcResult);
+				if(isLastAvcResult)
+					return tsSecs[0] == null ? null : write2Ts();
 					
-					if(tsSecs[0] == null)
-						return null;
-					//write2Ts
-					long maxPts = lastAacPts > lastAvcPts ? lastAacPts : lastAvcPts;
-					tsSegTime = (maxPts - ptsBase) / 90000F;
-					ptsBase = maxPts;
-					byte[] tsSegment = new byte[tsSegmentLen];
-	                int tsSegmentPtr = 0;
-					for (int i = 0; i < tsSecs.length; i++) {
-						if(tsSecs[i] != null) {
-		                    System.arraycopy(tsSecs[i], 0, tsSegment, tsSegmentPtr, tsSecs[i].length);
-		                    tsSegmentPtr += tsSecs[i].length;
-						}
-	                }
-	                prepare4nextTs();
-	                
-	                return tsSegment;
+				while(!isLastAvcResult) {
 					
-				}else {
-				
-					while(!isLastFrame) {
-						if(avcFrameWaitDeque.isEmpty())
-							break;
-						avcResult = avcFrameWaitDeque.peek();
-						writeFrame();
+					if(avcResultDeque.isEmpty())
+						break;
+					avcResult = avcResultDeque.peek();
+					writeFrame();
+					
+					if(avcResult.isLastAvcResult) {
+						isLastAvcResult = true;
 						
-						if(avcResult.isLastFrame) {
-							isLastFrame = true;
+						while(!avcFrameCache.isEmpty()) {
+							FrameData frameData = avcFrameCache.pop();
+							byte[] aacTsSegment= tsWriter.write(isAvcFirstPes,  FrameDataType.MIXED, frameData);
 							
-							while(!avcFrameCache.isEmpty()) {
-								FrameData frameData = avcFrameCache.pop();
-								byte[] aacTsSegment= tsWriter.write(isAvcFirstPes,  FrameDataType.MIXED, frameData);
-								
-								if(aacTsSegment!= null) {
-									tsSegmentLen += aacTsSegment.length;
-						            tsSecs[tsSecsPtr++] = aacTsSegment;
-								}
-								isAvcFirstPes = false;
-								lastAvcPts = frameData.pts;
+							if(aacTsSegment!= null) {
+								tsSegmentLen += aacTsSegment.length;
+					            tsSecs[tsSecsPtr++] = aacTsSegment;
 							}
-							
-							//write2Ts
-							long maxPts = lastAacPts > lastAvcPts ? lastAacPts : lastAvcPts;
-							tsSegTime = (maxPts - ptsBase) / 90000F;
-							ptsBase = maxPts;
-							byte[] tsSegment = new byte[tsSegmentLen];
-			                int tsSegmentPtr = 0;
-							for (int i = 0; i < tsSecs.length; i++) {
-								if(tsSecs[i] != null) {
-				                    System.arraycopy(tsSecs[i], 0, tsSegment, tsSegmentPtr, tsSecs[i].length);
-				                    tsSegmentPtr += tsSecs[i].length;
-								}
-			                }
-			                prepare4nextTs();
-			                return tsSegment;
+							isAvcFirstPes = false;
+							lastAvcPts = frameData.pts;
 						}
+						
+						return write2Ts();
 					}
 				}
 			}
@@ -138,13 +103,13 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	
 	private void writeFrame() {
 		
-		if(!isLastFrame) {
+		if(!isLastAvcResult) {
 			
-			while(!avcFrameWaitDeque.isEmpty()) {
-				AvcResult result = avcFrameWaitDeque.pop();
+			while(!avcResultDeque.isEmpty()) {
+				AvcResult result = avcResultDeque.pop();
 				for(FrameData avcFrame : result.avcFrames)
 					avcFrameCache.offer(avcFrame);
-				if(!result.isLastFrame)
+				if(!result.isLastAvcResult)
 					break;
 			}
 			
@@ -181,7 +146,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	public void prepare4nextTs() {
 		isAvcFirstPes = true;
 		isAacFirstPes = true;
-		isLastFrame = false;
+		isLastAvcResult = false;
 		
 		tsSegmentLen = 0;
 		tsSecsPtr = 0;
@@ -194,13 +159,30 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 		}
 		
 	}
+	
+	private byte[] write2Ts() {
+		
+		long maxPts = lastAacPts > lastAvcPts ? lastAacPts : lastAvcPts;
+		tsSegTime = (maxPts - ptsBase) / 90000F;
+		ptsBase = maxPts;
+		byte[] tsSegment = new byte[tsSegmentLen];
+        int tsSegmentPtr = 0;
+		for (int i = 0; i < tsSecs.length; i++) {
+			if(tsSecs[i] != null) {
+                System.arraycopy(tsSecs[i], 0, tsSegment, tsSegmentPtr, tsSecs[i].length);
+                tsSegmentPtr += tsSecs[i].length;
+			}
+        }
+        prepare4nextTs();
+        return tsSegment;
+	}
 
 	@Override
 	public void close() {
 		
 		isAvcFirstPes = true;
 		isAacFirstPes = true;
-		isLastFrame = false;
+		isLastAvcResult = false;
 		
 		tsSegmentLen = 0;
 		tsSecsPtr = 0;

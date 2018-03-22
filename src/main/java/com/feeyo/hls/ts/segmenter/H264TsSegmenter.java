@@ -316,7 +316,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 	static class AvcResult{
 		
 		public List<FrameData> avcFrames = new ArrayList<FrameData>();
-		public boolean isLastFrame;
+		public boolean isLastAvcResult;
 		
 		public AvcResult(List<AvcFrame> avcFrames, boolean isLastFrame) {
 			for(AvcFrame frame : avcFrames) {
@@ -327,7 +327,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 				frameData.isAudio = false;
 				this.avcFrames.add(frameData);
 			}
-			this.isLastFrame = isLastFrame;
+			this.isLastAvcResult = isLastFrame;
 		}
 	}
 	
