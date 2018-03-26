@@ -1,7 +1,7 @@
 <hls>
 	<ads>
-		<file name="" type="audio" sampleRate="8000" sampleSizeInBits="16" channels="1" />
-		<file name="" type="video" fps="25" />
-		<file name="" type="mixed" sampleRate="8000" sampleSizeInBits="16" channels="1" fps="25" />
+		<file name="x1.aac" type="audio" sampleRate="8000" sampleSizeInBits="16" channels="1" />
+		<file name="x2.h264" type="video" fps="25" />
+		<file name="x3.h264" type="mixed" sampleRate="8000" sampleSizeInBits="16" channels="1" fps="25" />
 	</ads>
 </hls>

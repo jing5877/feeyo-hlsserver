@@ -5,6 +5,7 @@ import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.feeyo.hls.AdsMagr;
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.net.http.HttpServer;
 import com.feeyo.net.udp.UdpServer;
@@ -39,6 +40,9 @@ public class HlsServer {
 		final Logger LOGGER = LoggerFactory.getLogger(HlsServer.class);
 		
 		try {
+			
+			// ads loading
+			AdsMagr.initialize();
 			
 			int httpPort = Integer.parseInt( HlsCtx.INSTANCE().getServerMap().get("http_port") );
 			int udpPort = Integer.parseInt( HlsCtx.INSTANCE().getServerMap().get("udp_port") );
