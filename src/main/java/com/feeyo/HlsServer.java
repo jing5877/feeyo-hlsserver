@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.net.http.HttpServer;
 import com.feeyo.net.udp.UdpServer;
-import com.feeyo.util.Log4jInitializer;
 
 
 
@@ -33,9 +32,6 @@ public class HlsServer {
 			File dir = new File(System.getProperty("user.dir"));
 			directory = dir.getParent();
 		}
-		
-		// 设置 LOG4J
-		Log4jInitializer.configureAndWatch( directory, "log4j.xml", 30000L);
 		
 		HlsCtx.INSTANCE().init( directory );
 		

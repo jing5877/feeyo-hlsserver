@@ -26,7 +26,8 @@ public class ConfigLoader {
 	
 	public static String buidCfgAbsPathFor(String fileName) {
 		StringBuffer path = new StringBuffer();
-		path.append( System.getProperty("FEEYO_HLS_HOME") ).append( File.separator ).append( "conf" ).append( File.separator ).append( fileName );
+		path.append( System.getProperty("FEEYO_HLS_HOME") ).append( File.separator )
+		.append( "conf" ).append( File.separator ).append( fileName );
         return path.toString();
 	}
 	

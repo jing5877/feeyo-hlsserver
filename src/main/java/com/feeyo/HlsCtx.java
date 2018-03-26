@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.feeyo.cfg.AdsCfg;
 import com.feeyo.cfg.ConfigLoader;
+import com.feeyo.util.Log4jInitializer;
 
 public class HlsCtx {
 	
@@ -30,6 +31,9 @@ public class HlsCtx {
 	public void init(String pathname) {
 		home = pathname;
 		System.setProperty("FEEYO_HLS_HOME", pathname);
+		
+		// 设置 LOG4J
+		Log4jInitializer.configureAndWatch( pathname, "log4j.xml", 30000L);
 
 		serverMap = ConfigLoader.loadServerMap( ConfigLoader.buidCfgAbsPathFor("server.xml") );
 		adsCfgs = ConfigLoader.loadAdsCfgs( ConfigLoader.buidCfgAbsPathFor("ads.xml") );
