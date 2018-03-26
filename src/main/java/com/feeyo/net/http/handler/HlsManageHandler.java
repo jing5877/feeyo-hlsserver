@@ -19,10 +19,9 @@ import org.jboss.netty.util.CharsetUtil;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-
-import com.feeyo.hls.AdsMagr;
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.hls.HlsLiveStreamType;
+import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.net.http.util.HlsRpcUtil;
 
 /**

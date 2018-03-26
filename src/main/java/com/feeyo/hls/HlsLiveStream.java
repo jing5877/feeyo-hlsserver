@@ -14,6 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.hls.ts.TsSegment;
 import com.feeyo.hls.ts.segmenter.AacH264MixedTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AacTranscodingTsSegmenter;

@@ -5,8 +5,8 @@ import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.feeyo.hls.AdsMagr;
 import com.feeyo.hls.HlsLiveStreamMagr;
+import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.net.http.HttpServer;
 import com.feeyo.net.udp.UdpServer;
 

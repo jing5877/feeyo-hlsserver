@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.hls.m3u8.M3U8;
 import com.feeyo.hls.m3u8.M3u8Builder;
 
