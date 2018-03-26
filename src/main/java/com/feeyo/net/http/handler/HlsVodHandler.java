@@ -28,8 +28,8 @@ import com.feeyo.audio.codec.faac.FaacUtils;
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.hls.ts.segmenter.AacTranscodingTsSegmenter;
 import com.feeyo.net.http.util.HttpUtil;
+import com.feeyo.net.http.util.OssUtil;
 import com.feeyo.net.udp.packet.V5PacketType;
-import com.feeyo.oss.OSSOperation;
 
 /**
  *  vod stream request handler
@@ -83,7 +83,7 @@ public class HlsVodHandler implements IRequestHandler {
         }
         
         
-        OSSOperation ossOperation = new OSSOperation();
+        OssUtil ossOperation = new OssUtil();
         byte[] content = null;
 
         if (reqFileName.endsWith(".m3u8")) {
@@ -160,7 +160,7 @@ public class HlsVodHandler implements IRequestHandler {
         
     	final String wavFileName = reqFileName.replace(".m3u8",".wav");
         
-        final OSSOperation ossOperation = new OSSOperation();
+        final OssUtil ossOperation = new OssUtil();
         ObjectMetadata objectMetadata = ossOperation.getObjectMetadata(wavFileName, streamId);
         
         final AacTranscodingTsSegmenter tsSegmenter = new AacTranscodingTsSegmenter();

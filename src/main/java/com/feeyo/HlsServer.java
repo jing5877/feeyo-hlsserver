@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.net.http.HttpServer;
 import com.feeyo.net.udp.UdpServer;
-import com.feeyo.util.Globals;
 import com.feeyo.util.Log4jInitializer;
 
 
@@ -38,16 +37,15 @@ public class HlsServer {
 		// 设置 LOG4J
 		Log4jInitializer.configureAndWatch( directory, "log4j.xml", 30000L);
 		
-		//app home
-		Globals.setHomeDirectory(directory);
-		Globals.setConfigName("hls.xml");
+		HlsCtx.INSTANCE().init( directory );
 		
-		
+
 		final Logger LOGGER = LoggerFactory.getLogger(HlsServer.class);
 		
 		try {
-			int httpPort = Globals.getIntProperty("http.port", -1);
-			int udpPort = Globals.getIntProperty("udp.port", -1);
+			
+			int httpPort = Integer.parseInt( HlsCtx.INSTANCE().getServerMap().get("http_port") );
+			int udpPort = Integer.parseInt( HlsCtx.INSTANCE().getServerMap().get("udp_port") );
 			
 			//udp server
 			final UdpServer udpServer = new UdpServer();

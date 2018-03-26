@@ -1,4 +1,4 @@
-package com.feeyo.oss;
+package com.feeyo.net.http.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -14,16 +14,31 @@ import com.aliyun.oss.model.LifecycleRule.StorageTransition;
 import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.ObjectMetadata;
 import com.aliyun.oss.model.SetBucketLifecycleRequest;
+import com.feeyo.HlsCtx;
 
-public class OSSOperation {
+public class OssUtil {
 
-	private final Logger LOGGER = LoggerFactory.getLogger(OSSOperation.class);
+	private final Logger LOGGER = LoggerFactory.getLogger(OssUtil.class);
 
 	private OSSClient ossClient;
+	
+	private String accessKeyId;
+	private String accessKeySecret;
+	private String endpoint;
+	private String bucketName;
 
-	public OSSOperation() {
-		ossClient = new OSSClient(OSSOperationConfig.endpoint, OSSOperationConfig.accessKeyId,
-				OSSOperationConfig.accessKeySecret);
+	public OssUtil() {
+		
+		
+		accessKeyId = HlsCtx.INSTANCE().getServerMap().get("oss_accessKeyId");
+		accessKeySecret = HlsCtx.INSTANCE().getServerMap().get("oss_accessKeySecret");
+		endpoint = HlsCtx.INSTANCE().getServerMap().get("oss_endpoint");
+		bucketName = HlsCtx.INSTANCE().getServerMap().get("oss_bucketName");
+		
+		
+		
+		ossClient = new OSSClient(endpoint, accessKeyId,
+				accessKeySecret);
 	}
 
 	/**
@@ -34,7 +49,7 @@ public class OSSOperation {
 		File file = new File(filePath + File.separator + fileName);
 		if (file.exists()) {
 			// 文件上传至阿里云OSS
-			ossClient.putObject(OSSOperationConfig.bucketName, String.valueOf(streamId) + "/" + fileName, file);
+			ossClient.putObject(bucketName, String.valueOf(streamId) + "/" + fileName, file);
 			// 删除本地文件
 			file.delete();
 			result = true;
@@ -47,14 +62,14 @@ public class OSSOperation {
 	 */
 	public void uploadObject(byte[] mp3, String fileName, long streamId) {
 		// 文件上传至阿里云OSS
-		ossClient.putObject(OSSOperationConfig.bucketName, String.valueOf(streamId) + "/" + fileName, new ByteArrayInputStream(mp3));
+		ossClient.putObject(bucketName, String.valueOf(streamId) + "/" + fileName, new ByteArrayInputStream(mp3));
 	}
 
 	/**
 	 * 获取OSS Object输入流
 	 */
 	public InputStream readObject(String fileName, long streamId) {
-		OSSObject ossObject = ossClient.getObject(OSSOperationConfig.bucketName, String.valueOf(streamId) + "/" + fileName);
+		OSSObject ossObject = ossClient.getObject(bucketName, String.valueOf(streamId) + "/" + fileName);
 		InputStream inputStream = ossObject.getObjectContent();
 		return inputStream;
 	}
@@ -63,21 +78,21 @@ public class OSSOperation {
 	 * 删除文件
 	 */
 	public void deleteObject(String fileName, long streamId) {
-		ossClient.deleteObject(OSSOperationConfig.bucketName, String.valueOf(streamId) + "/" + fileName);
+		ossClient.deleteObject(bucketName, String.valueOf(streamId) + "/" + fileName);
 	}
 
 	/**
 	 * 判断object在OSS上是否存在
 	 */
 	public boolean doesObjectExist(String fileName, long streamId) {
-		return ossClient.doesObjectExist(OSSOperationConfig.bucketName, String.valueOf(streamId) + "/" + fileName);
+		return ossClient.doesObjectExist(bucketName, String.valueOf(streamId) + "/" + fileName);
 	}
 
 	/**
 	 * 获取object的大小
 	 */
 	public long getObjectLength(String fileName, long streamId) {
-		ObjectMetadata objectMetadata = ossClient.getObjectMetadata(OSSOperationConfig.bucketName,
+		ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName,
 				String.valueOf(streamId) + "/" + fileName);
 		return objectMetadata.getContentLength();
 	}
@@ -86,7 +101,7 @@ public class OSSOperation {
 	 * 获取object头信息
 	 */
 	public ObjectMetadata getObjectMetadata(String fileName, long streamId) {
-		ObjectMetadata objectMetadata = ossClient.getObjectMetadata(OSSOperationConfig.bucketName,
+		ObjectMetadata objectMetadata = ossClient.getObjectMetadata(bucketName,
 				String.valueOf(streamId) + "/" + fileName);
 		return objectMetadata;
 	}
@@ -96,7 +111,7 @@ public class OSSOperation {
 	 */
 	public void updateExpirationDays(int days) {
 		// 获取生命周期规则列表
-		List<LifecycleRule> list = ossClient.getBucketLifecycle(OSSOperationConfig.bucketName);
+		List<LifecycleRule> list = ossClient.getBucketLifecycle(bucketName);
 		if (list.size() > 0) {
 			LifecycleRule lifecycleRule = list.get(0);
 			List<StorageTransition> storageTransitionList = lifecycleRule.getStorageTransition();
@@ -107,8 +122,7 @@ public class OSSOperation {
 				if (storageTransition.getExpirationDays() != days) {
 					storageTransition.setExpirationDays(days);
 
-					SetBucketLifecycleRequest setBucketLifecycleRequest = new SetBucketLifecycleRequest(
-							OSSOperationConfig.bucketName);
+					SetBucketLifecycleRequest setBucketLifecycleRequest = new SetBucketLifecycleRequest(bucketName);
 					setBucketLifecycleRequest.setLifecycleRules(list);
 					ossClient.setBucketLifecycle(setBucketLifecycleRequest);
 					LOGGER.info("oss life cycle set expir : " + days + " days");
