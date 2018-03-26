@@ -40,7 +40,7 @@ public class AdsMagr {
 	//
 	public static void initialize() {
 		
-		String adsPath = HlsCtx.INSTANCE().getHomePath() + File.separator + "data";
+		String adsPath = HlsCtx.INSTANCE().getHomePath() + File.separator + "ads";
 		
 			
 		File adsDirectory = new File( adsPath );
@@ -53,7 +53,7 @@ public class AdsMagr {
 					String md5 = Md5.md5_32( adsCfg.getType() + adsCfg.getSampleRate() + adsCfg.getSampleSizeInBits() + 
 							adsCfg.getChannels() + adsCfg.getFps());
 					
-					String filePath =  HlsCtx.INSTANCE().getHomePath() + File.separator + "data" + File.separator + adsCfg.getName();
+					String filePath =  adsPath + File.separator + adsCfg.getName();
 					File file = new File( filePath );
 					if(file.isFile() && file.exists()) {
 						
