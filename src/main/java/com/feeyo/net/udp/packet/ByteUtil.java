@@ -98,6 +98,18 @@ public class ByteUtil {
 	            | (((long) b0) & 0xFF);
 	}
 	
+	public static byte[] longToBytes(long i) {
+		return new byte[] {
+				(byte) ((i >> 56) & 0xFF),  
+				(byte) ((i >> 48) & 0xFF),  
+				(byte) ((i >> 40) & 0xFF),  
+				(byte) ((i >> 32) & 0xFF),  
+				(byte) ((i >> 24) & 0xFF),  
+			    (byte) ((i >> 16) & 0xFF),     
+			    (byte) ((i >> 8) & 0xFF),     
+			    (byte) (i & 0xFF)  
+		};
+	}
 	
 	public static void main(String[] args) {
 		

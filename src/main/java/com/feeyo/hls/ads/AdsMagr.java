@@ -92,7 +92,7 @@ public class AdsMagr {
 											frameBuf = FaacUtils.ZERO_PCM_DATA;
 										}
 	
-										byte[] tsSegment = aacTsSegmenter.getTsBuf(V5PacketType.AAC_STREAM, frameBuf);
+										byte[] tsSegment = aacTsSegmenter.getTsBuf(V5PacketType.AAC_STREAM, frameBuf, null);
 										if (tsSegment != null) {
 											aacTsSegs.add(new  TsSegment((i+1)+".ts",tsSegment,aacTsSegmenter.getTsSegTime(),true));
 										}
@@ -120,7 +120,7 @@ public class AdsMagr {
 										int len = ptr + 2048 < adRawData.length ?  2048 : adRawData.length - ptr;
 										byte[] dest = new byte[len]; 
 										System.arraycopy(adRawData, ptr, dest, 0, len);
-										byte[]  tsSegment = h264TsSegmenter.getTsBuf(V5PacketType.H264_STREAM, dest);
+										byte[]  tsSegment = h264TsSegmenter.getTsBuf(V5PacketType.H264_STREAM, dest, null);
 										if(tsSegment != null)
 											h264TsSegs.add(new TsSegment((++index)+".ts", tsSegment, h264TsSegmenter.getTsSegTime(),true));
 										ptr += 2048;

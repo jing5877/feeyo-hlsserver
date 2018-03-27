@@ -220,9 +220,10 @@ public class HlsLiveStreamMagr {
 
 					if ( isPass ) {
 						byte[] packetData = packet.getPacketData();
+						byte[] reserved = packet.getPacketReserved();
 						if (V5PacketType.PCM_STREAM == packet.getPacketType())
 							packetData = pcmuDecoder.process(packet.getPacketData());
-						liveStream.addAvStream(packetType, packetReserved, packetData);
+						liveStream.addAvStream(packetType, packetReserved, packetData, reserved);
 						
 					} else {
 						LOGGER.warn("livestream no pass err: streamId={}, streamType={}, packetType={}", liveStream.getStreamId(),

@@ -59,7 +59,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 	}
 
 	@Override
-	protected byte[] segment(byte rawDataType, byte[] rawData) {
+	protected byte[] segment(byte rawDataType, byte[] rawData, byte[] reserved) {
 		//
 		if (rawData != null && rawData.length > 0) {
 			

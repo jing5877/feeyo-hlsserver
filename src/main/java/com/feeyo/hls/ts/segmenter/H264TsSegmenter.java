@@ -87,7 +87,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 	}
 
 	@Override
-	protected byte[] segment(byte rawDataType, byte[] rawData) {
+	protected byte[] segment(byte rawDataType, byte[] rawData, byte[] reserved) {
 		
 		byte[] tsSegment = null;
 		boolean isNalDelimiter4 = false;

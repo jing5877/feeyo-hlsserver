@@ -26,7 +26,7 @@ public class TsEncoderTest {
 		
 		while(true) {
 			for(byte[] media : dataList) {
-				tsSegmenter.getTsBuf(V5PacketType.H264_STREAM, media);
+				tsSegmenter.getTsBuf(V5PacketType.H264_STREAM, media, null);
 			}
 		}
 		

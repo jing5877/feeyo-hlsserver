@@ -39,7 +39,7 @@ public class AacTranscodingTsSegmenter extends AacTsSegmenter {
         
         // process the cached packets, need tens of milliseconds and the interval between rtp packet is 128ms
         for (int i=0; i<8; i++){
-            getTsBuf(V5PacketType.PCM_STREAM, FaacUtils.ZERO_PCM_DATA );
+            getTsBuf(V5PacketType.PCM_STREAM, FaacUtils.ZERO_PCM_DATA, null);
         }
     }
 
@@ -75,7 +75,7 @@ public class AacTranscodingTsSegmenter extends AacTsSegmenter {
 				frameBuf = FaacUtils.ZERO_PCM_DATA;
 			}
 
-			byte[] tsSegment = getTsBuf(V5PacketType.PCM_STREAM, frameBuf);
+			byte[] tsSegment = getTsBuf(V5PacketType.PCM_STREAM, frameBuf, null);
 			if (tsSegment != null) {
 				tsSegments[i++] = tsSegment;
 			}

@@ -96,12 +96,12 @@ public abstract class AbstractTsSegmenter {
 	}
 	
 	// 分段
-	protected abstract byte[] segment(byte rawDataType, byte[] rawData);
+	protected abstract byte[] segment(byte rawDataType, byte[] rawData, byte[] reserved);
 	
 	
-	public byte[] getTsBuf(byte rawDataType, byte[] rawData) {
+	public byte[] getTsBuf(byte rawDataType, byte[] rawData, byte[] reserved) {
 		byte[] newRawData = transcoding(rawDataType, rawData );
-		return segment(rawDataType, newRawData );
+		return segment(rawDataType, newRawData, reserved);
 	}
 	
 	public abstract void close();

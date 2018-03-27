@@ -212,10 +212,10 @@ public class HlsVodHandler implements IRequestHandler {
 					for (int i = 0; i < tsNum;) {
 						
 						if ( readBytes(inputStream, frameBuf) > 0 ) {
-							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, frameBuf);
+							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, frameBuf, null);
 
 						} else {
-							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, FaacUtils.ZERO_PCM_DATA);
+							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, FaacUtils.ZERO_PCM_DATA, null);
 						}
 
                         if (tsSegment != null) {

@@ -265,13 +265,12 @@ public class HlsLiveStream {
 
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData) {
+	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
     	
     	this.mtime = System.currentTimeMillis();
 
     	if( tsSegmenter != null) {
-    		
-	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData );
+	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, reserved );
 	        if ( tsData != null) {
 
 	        	long tsIndex = tsSegmentIndexGen.getAndIncrement();
