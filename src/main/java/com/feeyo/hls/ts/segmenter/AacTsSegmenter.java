@@ -114,9 +114,8 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 	
 	public FrameData process(byte[] rawData) {
 		
-		if (rawData != null && rawData.length > 0 && ++aacFrameCounter % TS_PES_AU_NUM == 0) {
-			
-			pts += ptsIncPerFrame * TS_PES_AU_NUM;		// 计算 PTS
+		if (rawData != null && rawData.length > 0) {
+			pts += ptsIncPerFrame;
 			FrameData frameData =  new FrameData();
 			frameData.buf = rawData;
 			frameData.pts = pts;

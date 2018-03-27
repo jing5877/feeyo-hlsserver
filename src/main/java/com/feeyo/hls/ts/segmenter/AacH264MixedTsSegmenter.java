@@ -24,7 +24,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(AacH264MixedTsSegmenter.class);
 
-	private static final long wTime = 2000; // 等待时间ms
+	private static final long wTime = 500; // 等待时间ms
 	private ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
 
 	private ArrayDeque<AvcResult> avcResultDeque = new ArrayDeque<AvcResult>();
@@ -57,7 +57,11 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 	private long lastAacPts = 0;
 	private long lastAvcPts = 0;
-
+	
+	private boolean syncPtsBase = false;
+	private byte headFrameType = 0x00;
+	private long ctime = 0;
+	
 	public AacH264MixedTsSegmenter() {
 
 		tsSecs = new byte[3000][];
@@ -115,13 +119,24 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			return null;
 		}
 		
+		if(ctime == 0) {
+			headFrameType = rawDataType;
+			ctime = System.currentTimeMillis();
+		}
+		
 		//from 0
 		long index = ByteUtil.bytesToLong(reserved[0], reserved[1], reserved[2], reserved[3], reserved[4], reserved[5],
 				reserved[6], reserved[7]);
-
+		
 		switch (rawDataType) {
 
 		case V5PacketType.AAC_STREAM:
+			
+			if( !syncPtsBase && headFrameType != V5PacketType.AAC_STREAM ) {
+				aacTsSegmenter.setPts((System.currentTimeMillis() - ctime) * 90);
+				syncPtsBase = true;
+			}
+			
 			if (index == preAacIndex + 1) {
 				isWaitingAac = false;
 				preAacIndex++;
@@ -148,7 +163,12 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			break;
 
 		case V5PacketType.H264_STREAM:
-
+			
+			if(!syncPtsBase && headFrameType != V5PacketType.H264_STREAM ) {
+				h264TsSegmenter.setPts((System.currentTimeMillis() - ctime) * 90);
+				syncPtsBase = true;
+			}
+			
 			if (index == preAvcIndex + 1) {
 				isWaitingAvc = false;
 				preAvcIndex = index;
@@ -191,7 +211,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 			break;
 		}
-
+		
 		return null;
 	}
 
@@ -239,8 +259,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 		}
 
 		isWaitingAac = (aacFrameCache.isEmpty()
-				&& lastAacPts + aacTsSegmenter.getPtsIncPerFrame() * TS_PES_AU_NUM < lastAvcPts
-						+ h264TsSegmenter.getPtsIncPerFrame());
+				&& lastAacPts + aacTsSegmenter.getPtsIncPerFrame() < lastAvcPts + h264TsSegmenter.getPtsIncPerFrame());
 	}
 
 	public void prepare4nextTs() {
@@ -287,6 +306,10 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 		isWaitingAac = false;
 		avcRawCache.clear();
 		aacRawCache.clear();
+		
+		syncPtsBase = false;
+		headFrameType = 0x00;
+		ctime = 0;
 
 		tsSegmentLen = 0;
 		tsSecsPtr = 0;
