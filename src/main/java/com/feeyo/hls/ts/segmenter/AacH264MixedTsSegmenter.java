@@ -27,23 +27,31 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	private static final long wTime = 500; // 等待时间ms
 	private ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
 
-	private ArrayDeque<AvcResult> avcResultDeque = new ArrayDeque<AvcResult>();
-	private ArrayDeque<FrameData> avcFrameCache = new ArrayDeque<FrameData>();
-	private ArrayDeque<FrameData> aacFrameCache = new ArrayDeque<FrameData>();
+	private ArrayDeque<AvcResult> avcResultDeque = new ArrayDeque<AvcResult>();		
+	private ArrayDeque<FrameData> avcFrameCache = new ArrayDeque<FrameData>();		//视频队列
+	private ArrayDeque<FrameData> aacFrameCache = new ArrayDeque<FrameData>();		//音频队列
 
 	private List<RawItem> avcRawCache = new ArrayList<RawItem>();
 	private List<RawItem> aacRawCache = new ArrayList<RawItem>();
 
 	private long preAvcCTime = System.currentTimeMillis();
 	private long preAacCTime = preAvcCTime;
-	private long preAvcIndex = -1;
-	private long preAacIndex = -1;
+	private long preAvcIndex = -1;			//已处理的视频序号
+	private long preAacIndex = -1;			//已处理的音频序号
 
-	private volatile boolean isWaitingAvc = false;
-	private volatile boolean isWaitingAac = false;
+	private boolean skipAvc = false;		//视频是否跳帧
+	private boolean skipAac = false;		//音频是否跳帧
+	private boolean waitAac = false;		//是否需要等到音频
+	private boolean isTailAvc = false;		//是否为最后的视频帧组
+	private boolean isFirstAacPes = true;	//是否为音频首个PES包
+	private boolean isFirstAvcPes = true;	//是否为视频首个PES包
+	private boolean syncPtsBase = false;	//音视频起始时间的对齐标志
+	private byte headFrameType = 0x00;		//辅助音视频对齐起始时间
+	private long ctime = 0;					//同上
+	
+	private long mixPts;					//mixTs中最新的pts
 
 	private TsWriter tsWriter;
-
 	private H264TsSegmenter h264TsSegmenter;
 	private AacTsSegmenter aacTsSegmenter;
 
@@ -51,17 +59,6 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	private int tsSecsPtr = 0;
 	private int tsSegmentLen = 0;
 
-	private boolean isAacFirstPes = true;
-	private boolean isAvcFirstPes = true;
-	private boolean isLastAvcResult = false;
-
-	private long lastAacPts = 0;
-	private long lastAvcPts = 0;
-	
-	private boolean syncPtsBase = false;
-	private byte headFrameType = 0x00;
-	private long ctime = 0;
-	
 	public AacH264MixedTsSegmenter() {
 
 		tsSecs = new byte[3000][];
@@ -73,7 +70,12 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			@Override
 			public void run() {
 				long currentTime = System.currentTimeMillis();
-				if (isWaitingAac && currentTime - preAacCTime > wTime) {
+				
+				if(waitAac && currentTime - preAacCTime > wTime) {
+					waitAac = false;
+				}
+				
+				if (skipAac && currentTime - preAacCTime > wTime) {
 					preAacCTime = currentTime;
 					if (!aacRawCache.isEmpty()) {
 						RawItem raw = aacRawCache.remove(0);
@@ -84,8 +86,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 					}
 				}
 
-				currentTime = System.currentTimeMillis();
-				if (isWaitingAvc && currentTime - preAvcCTime > wTime) {
+				if (skipAvc && currentTime - preAvcCTime > wTime) {
 					preAvcCTime = currentTime;
 					if (!avcRawCache.isEmpty()) {
 						RawItem raw = avcRawCache.remove(0);
@@ -95,6 +96,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 						preAvcIndex = raw.index;
 					}
 				}
+				
 			}
 
 		}, 0, 30, TimeUnit.MILLISECONDS);
@@ -138,8 +140,8 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			}
 			
 			if (index == preAacIndex + 1) {
-				isWaitingAac = false;
 				preAacIndex++;
+				skipAac = false;
 				FrameData aacFrame = aacTsSegmenter.process(rawData);
 				if (aacFrame != null)
 					aacFrameCache.offer(aacFrame);
@@ -147,17 +149,18 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			} else if (index > preAacIndex + 1) {
 				aacRawCache.add(new RawItem(rawData, index));
 				Collections.sort(aacRawCache, new RawDescComparator());
-				isWaitingAac = true;
+				skipAac = true;
 			}
 
 			while (!aacRawCache.isEmpty() && aacRawCache.get(0).index == preAacIndex + 1) {
 				preAacIndex++;
+				skipAac = false;
 				FrameData aacFrame = aacTsSegmenter.process(aacRawCache.remove(0).rawData);
 				if (aacFrame != null)
 					aacFrameCache.offer(aacFrame);
 			}
 
-			if (isWaitingAac)
+			if (waitAac)
 				writeFrame();
 
 			break;
@@ -170,7 +173,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			}
 			
 			if (index == preAvcIndex + 1) {
-				isWaitingAvc = false;
+				skipAvc = false;
 				preAvcIndex = index;
 
 				AvcResult avcResult = h264TsSegmenter.process(rawData);
@@ -179,32 +182,35 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			} else if (index > preAvcIndex + 1) {
 				avcRawCache.add(new RawItem(rawData, index));
 				Collections.sort(avcRawCache, new RawDescComparator());
-				isWaitingAvc = true;
+				skipAvc = true;
 			}
 
 			while (!avcRawCache.isEmpty() && avcRawCache.get(0).index == preAvcIndex + 1) {
 				preAvcIndex++;
+				skipAvc = false;
 				AvcResult avcResult = h264TsSegmenter.process(avcRawCache.remove(0).rawData);
-				if (avcResult != null)
+				if (avcResult != null) 
 					avcResultDeque.offer(avcResult);
 			}
 
-			if (isLastAvcResult)
+			if (isTailAvc && !waitAac)
 				return tsSecs[0] == null ? null : write2Ts();
 			while (!avcResultDeque.isEmpty()) {
 				writeFrame();
-				if (isLastAvcResult) {
+				if (isTailAvc && !waitAac) {
+					long lastAvcPts = 0;
 					while (!avcFrameCache.isEmpty()) {
+						
 						FrameData frameData = avcFrameCache.pop();
-						byte[] aacTsSegment = tsWriter.write(isAvcFirstPes, FrameDataType.MIXED, frameData);
-
+						byte[] aacTsSegment = tsWriter.write(isFirstAvcPes, FrameDataType.MIXED, frameData);
 						if (aacTsSegment != null) {
 							tsSegmentLen += aacTsSegment.length;
 							tsSecs[tsSecsPtr++] = aacTsSegment;
 						}
-						isAvcFirstPes = false;
+						isFirstAvcPes = false;
 						lastAvcPts = frameData.pts;
 					}
+					mixPts = mixPts > lastAvcPts ? mixPts : lastAvcPts;
 					return write2Ts();
 				}
 			}
@@ -217,7 +223,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 	private void writeFrame() {
 
-		if (isLastAvcResult)
+		if (isTailAvc)
 			return;
 
 		while (!avcResultDeque.isEmpty()) {
@@ -225,47 +231,47 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			for (FrameData avcFrame : result.avcFrames)
 				avcFrameCache.offer(avcFrame);
 			if (result.isLastAvcResult) {
-				isLastAvcResult = true;
+				isTailAvc = true;
 				break;
 			}
 		}
 
+		long lastAacPts = 0;
+		long lastAvcPts = 0;
 		while (!aacFrameCache.isEmpty() && !avcFrameCache.isEmpty()) {
-
+			
 			FrameData avcFrame = avcFrameCache.peek();
 			if (aacFrameCache.peek().pts < avcFrame.pts) {
 				FrameData frameData = aacFrameCache.pop();
-				byte[] aacTsSegment = tsWriter.write(isAacFirstPes, FrameDataType.MIXED, frameData);
+				byte[] aacTsSegment = tsWriter.write(isFirstAacPes, FrameDataType.MIXED, frameData);
 
 				if (aacTsSegment != null) {
 					tsSegmentLen += aacTsSegment.length;
 					tsSecs[tsSecsPtr++] = aacTsSegment;
 				}
-
-				isAacFirstPes = false;
+				isFirstAacPes = false;
 				lastAacPts = frameData.pts;
 			} else {
 
 				FrameData frameData = avcFrameCache.pop();
-				byte[] avcTsSegment = tsWriter.write(isAvcFirstPes, FrameDataType.MIXED, frameData);
+				byte[] avcTsSegment = tsWriter.write(isFirstAvcPes, FrameDataType.MIXED, frameData);
 				if (avcTsSegment != null) {
 					tsSegmentLen += avcTsSegment.length;
 					tsSecs[tsSecsPtr++] = avcTsSegment;
 				}
-
-				isAvcFirstPes = false;
+				isFirstAvcPes = false;
 				lastAvcPts = frameData.pts;
 			}
 		}
-
-		isWaitingAac = (aacFrameCache.isEmpty()
-				&& lastAacPts + aacTsSegmenter.getPtsIncPerFrame() < lastAvcPts + h264TsSegmenter.getPtsIncPerFrame());
+		long maxPts = lastAvcPts > lastAacPts ? lastAvcPts : lastAacPts;
+		mixPts = mixPts > maxPts ? mixPts : maxPts;
+		waitAac = (aacFrameCache.isEmpty() && lastAacPts + aacTsSegmenter.getPtsIncPerFrame() < lastAvcPts + h264TsSegmenter.getPtsIncPerFrame());
 	}
 
 	public void prepare4nextTs() {
-		isAvcFirstPes = true;
-		isAacFirstPes = true;
-		isLastAvcResult = false;
+		isFirstAvcPes = true;
+		isFirstAacPes = true;
+		isTailAvc = false;
 
 		tsSegmentLen = 0;
 		tsSecsPtr = 0;
@@ -278,10 +284,9 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	}
 
 	private byte[] write2Ts() {
-
-		long maxPts = lastAacPts > lastAvcPts ? lastAacPts : lastAvcPts;
-		tsSegTime = (maxPts - ptsBase) / 90000F;
-		ptsBase = maxPts;
+		
+		tsSegTime = (mixPts - ptsBase) / 90000F;
+		ptsBase = mixPts;
 		byte[] tsSegment = new byte[tsSegmentLen];
 		int tsSegmentPtr = 0;
 		for (int i = 0; i < tsSecs.length; i++) {
@@ -297,13 +302,13 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	@Override
 	public void close() {
 
-		isAvcFirstPes = true;
-		isAacFirstPes = true;
-		isLastAvcResult = false;
+		isFirstAvcPes = true;
+		isFirstAacPes = true;
+		isTailAvc = false;
 		preAvcIndex = -1;
 		preAacIndex = -1;
-		isWaitingAvc = false;
-		isWaitingAac = false;
+		skipAvc = false;
+		skipAac = false;
 		avcRawCache.clear();
 		aacRawCache.clear();
 		
