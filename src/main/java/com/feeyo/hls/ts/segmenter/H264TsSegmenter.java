@@ -86,6 +86,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 	}
 
 	public void prepare4nextTs() {
+
 		numInGop = 0;
 		tsSecsPtr = 0;
 		tsSegmentLen = 0;
@@ -168,8 +169,8 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 						}
 					}
 					
-					if(isLastFrame) {
-						
+					tsSegTime = numInGop / this.fps;
+					if(isLastFrame && tsSegTime >= 10F) {
 						waitingIDRFrame = true;
 						isFirstPes = true;
 						tsSegTime = numInGop / this.fps;
@@ -182,6 +183,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 							}
 		                }
 		                prepare4nextTs();
+		                
 					}
 				}
 				
@@ -198,7 +200,6 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		
 		return tsSegment;
 	}
-	
 	
 	//mixed itf
 	public AvcResult process(byte[] rawData) {

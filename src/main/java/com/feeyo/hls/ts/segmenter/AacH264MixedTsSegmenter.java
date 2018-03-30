@@ -68,7 +68,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 	private AtomicBoolean aacLocking = new AtomicBoolean(false);
 	private AtomicBoolean avcLocking = new AtomicBoolean(false);
-
+	
 	public AacH264MixedTsSegmenter() {
 
 		tsSecs = new byte[3000][];
@@ -234,8 +234,13 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 				}
 
-				if (isTailAvc && !waitAac)
-					return tsSecs[0] == null ? null : write2Ts();
+				if (isTailAvc && !waitAac) {
+					if(tsSecs[0] == null)
+						return null;
+					tsSegTime = (mixPts - ptsBase) / 90000F;
+					isTailAvc = false;
+					return tsSecs[0] == null || tsSegTime < 10F ? null : write2Ts();
+				}
 				while (!avcResultDeque.isEmpty()) {
 					writeFrame();
 					if (isTailAvc && !waitAac) {
@@ -259,7 +264,9 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 												+ h264TsSegmenter.getPtsIncPerFrame());
 							}
 						}
-						return write2Ts();
+						tsSegTime = (mixPts - ptsBase) / 90000F;
+						isTailAvc = false;
+						return tsSegTime < 10F ? null : write2Ts();
 					}
 				}
 			} finally {
@@ -319,7 +326,6 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 	public void prepare4nextTs() {
 		isFirstAvcPes = true;
 		isFirstAacPes = true;
-		isTailAvc = false;
 		tsSegmentLen = 0;
 		tsSecsPtr = 0;
 		tsWriter.reset();
@@ -331,7 +337,6 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 	private byte[] write2Ts() {
 
-		tsSegTime = (mixPts - ptsBase) / 90000F;
 		ptsBase = mixPts;
 		byte[] tsSegment = new byte[tsSegmentLen];
 		int tsSegmentPtr = 0;
