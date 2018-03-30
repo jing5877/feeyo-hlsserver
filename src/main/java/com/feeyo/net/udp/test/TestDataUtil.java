@@ -11,7 +11,7 @@ public class TestDataUtil {
 		StringBuffer filePath = new StringBuffer();
 		filePath.append( System.getProperty("user.dir") ).append( File.separator );
 		filePath.append( "testdata" ).append( File.separator );
-		filePath.append( "de_video1.h264" ); // video.h264     test.h264  video_old.h264
+		filePath.append( "video.h264" );
 		
 		byte[] data = null;
 		try {
@@ -27,7 +27,7 @@ public class TestDataUtil {
 		StringBuffer filePath = new StringBuffer();
 		filePath.append( System.getProperty("user.dir") ).append( File.separator );
 		filePath.append( "testdata" ).append( File.separator );
-		filePath.append( "de_audio1.aac" );
+		filePath.append( "audio.aac" );
 		
 		byte[] data = null;
 		try {
