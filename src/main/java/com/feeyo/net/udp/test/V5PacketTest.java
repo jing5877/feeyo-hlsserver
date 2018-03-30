@@ -16,7 +16,7 @@ public class V5PacketTest {
 	public static void main(String[] args) {
 		
 		// 18
-		
+		V5PacketIdGenerator idGenerator = new V5PacketIdGenerator();
 		String text = "Hello world ccccccccccccccccccccccc3333333344444ccccccccccc! zzzzzzz@";
 		int MTU = 28;
 		
@@ -24,7 +24,7 @@ public class V5PacketTest {
 		int packetSender = 12;
 		byte packetType = 1;
 		byte[] packetReserved = new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-		int packetId = V5PacketIdGenerator.getINSTNCE().getId();
+		int packetId = idGenerator.getId();
 		List<V5Packet> packets = encoder.encode(MTU, packetSender, packetType, packetReserved, packetId, text.getBytes());
 		
 		for (int i = 0; i < packets.size(); i++) {

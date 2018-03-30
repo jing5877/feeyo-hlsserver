@@ -57,7 +57,7 @@ public class UdpServerChannelHandler extends SimpleChannelHandler {
 				}
 				
 				// RESP
-				byte[] response =  new byte[10];
+				byte[] response =  new byte[11];
 				response[0] = 0x11;
 				response[1] = 0x12;
 				
@@ -70,6 +70,8 @@ public class UdpServerChannelHandler extends SimpleChannelHandler {
 				response[7] = ByteUtil.getByte2( packet.getPacketOffset() );
 				response[8] = ByteUtil.getByte1( packet.getPacketOffset() );
 				response[9] = ByteUtil.getByte0( packet.getPacketOffset() );
+				
+				response[10] = packet.getPacketType();
 				e.getChannel().write( ChannelBuffers.copiedBuffer( response ) , addr);
 				
 			}

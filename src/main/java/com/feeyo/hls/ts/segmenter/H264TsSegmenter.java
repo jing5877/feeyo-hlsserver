@@ -8,6 +8,7 @@ import java.util.NoSuchElementException;
 
 import com.feeyo.mpeg2ts.TsWriter;
 import com.feeyo.mpeg2ts.TsWriter.FrameData;
+import com.feeyo.net.udp.packet.ByteUtil;
 import com.feeyo.util.ts.codec.TsEncoder;
 
 /**
@@ -112,7 +113,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		byte[] src = framesBuf.elements(seekPos, framesBuf.size() - seekPos);
 		
 		//NAL的分隔符位置
-		List<Integer> delimiters = H264NalUtil.kmp(src, NAL_DELIMITER);
+		List<Integer> delimiters = ByteUtil.kmp(src, NAL_DELIMITER);
 		
 		for(int i=0; i<delimiters.size(); i++) {
 			
@@ -210,7 +211,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		framesBuf.add(rawData);
 		byte[] src = framesBuf.elements(seekPos, framesBuf.size() - seekPos);
 		
-		List<Integer> delimiters = H264NalUtil.kmp(src, NAL_DELIMITER);
+		List<Integer> delimiters = ByteUtil.kmp(src, NAL_DELIMITER);
 		List<AvcFrame> encodeAvcFrames = new ArrayList<AvcFrame>();
 		List<AvcFrame> endAvcFrames = new ArrayList<AvcFrame>();
 		encodeAvcFrames.addAll(cacheAvcFrames);
@@ -468,7 +469,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
         			0x5F, 0x5F,0x00, 0x00, 0x00, 0x01, 0x41, (byte) 0xE0,
         			(byte) 0xD1, 0x0B, (byte) 0xFF, (byte) 0x99, (byte) 0xC5,
         			0x5F, 0x5F,0x00, 0x00, 0x00, 0x01, 0x41, (byte) 0xE0};
-        List<Integer> res = H264NalUtil.kmp(b, a);
+        List<Integer> res = ByteUtil.kmp(b, a);
         System.out.println("kmp: " +res);
         for(int i=0; i<res.size(); i++) {
         	for(int j =0; j<a.length;j++)
