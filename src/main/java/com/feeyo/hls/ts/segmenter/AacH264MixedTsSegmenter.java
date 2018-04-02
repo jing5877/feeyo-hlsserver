@@ -45,11 +45,12 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 	private boolean skipAvc = false; 											// 视频是否跳帧
 	private boolean skipAac = false; 											// 音频是否跳帧
-	private boolean waitAac = false; 											// 是否需要等到音频
+	private boolean waitAac = false; 											// 是否等待音频
 	private boolean isTailAvc = false; 											// 是否为最后的视频帧组
 	private boolean isFirstAacPes = true; 										// 是否为音频首个PES包
 	private boolean isFirstAvcPes = true; 										// 是否为视频首个PES包
 	private boolean syncPtsBase = false; 										// 音视频起始时间的对齐标志
+	private boolean isLowTenSec = false;										// 视频时长是否低于10s
 	private byte headFrameType = 0x00; 											// 辅助音视频对齐起始时间
 	private long ctime = 0; 													// 同上
 
@@ -239,6 +240,13 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 						return null;
 					tsSegTime = (mixPts - ptsBase) / 90000F;
 					isTailAvc = false;
+					
+					// Consider video in 10 seconds.
+					if(!isLowTenSec && tsSecs[0] != null && tsSegTime < 10F && System.currentTimeMillis() - ctime > 60 * 1000) {
+						isLowTenSec = true;
+						return write2Ts();
+					}
+					
 					return tsSecs[0] == null || tsSegTime < 10F ? null : write2Ts();
 				}
 				while (!avcResultDeque.isEmpty()) {
@@ -266,6 +274,13 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 						}
 						tsSegTime = (mixPts - ptsBase) / 90000F;
 						isTailAvc = false;
+						
+						// Consider video in 10 seconds.
+						if(!isLowTenSec && tsSecs[0] != null && tsSegTime < 10F && System.currentTimeMillis() - ctime > 60 * 1000) {
+							isLowTenSec = true;
+							return write2Ts();
+						}
+						
 						return tsSegTime < 10F ? null : write2Ts();
 					}
 				}
