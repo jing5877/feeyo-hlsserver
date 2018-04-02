@@ -40,9 +40,6 @@ public class UdpClientTest extends UdpClientChannelHandler {
 	private AtomicBoolean aacLinkConnectionStatus = new AtomicBoolean(false);
 	private AtomicBoolean avcLinkConnectionStatus = new AtomicBoolean(false);
 	
-	private V5PacketIdGenerator aacIdGenerator = new V5PacketIdGenerator();
-	private V5PacketIdGenerator avcIdGenerator = new V5PacketIdGenerator();
-	
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 		//
@@ -142,8 +139,9 @@ public class UdpClientTest extends UdpClientChannelHandler {
 
 
 	public void writeAac(UdpClient client) {
-		byte[] fileBuff = TestDataUtil.getAudioData(); 
 		
+		byte[] fileBuff = TestDataUtil.getAudioData(); 
+		V5PacketIdGenerator aacIdGenerator = new V5PacketIdGenerator();
 		List<Integer> list = ByteUtil.kmp(fileBuff, new byte[] {(byte) 0xff, (byte) 0xf1});
 		for(int i=0; i < list.size(); i++ ) {
 			byte[] buff11 = null;
@@ -202,6 +200,7 @@ public class UdpClientTest extends UdpClientChannelHandler {
 	public void writeH264(UdpClient client) {
 		
 		byte[] fileBuff = TestDataUtil.getVideoData(); 
+		V5PacketIdGenerator avcIdGenerator = new V5PacketIdGenerator();
 		for(int i=0; i <= fileBuff.length - 2048; i= i+2048 ) {
 			
 			byte[] buff11 = new byte[2048];
