@@ -265,7 +265,7 @@ public class UdpClientTest extends UdpClientChannelHandler {
 	}
 	
 	
-	class BuffPacket {
+	static class BuffPacket {
 		public int id;
 		public byte[] buff;
 		public boolean isResp = false;

@@ -46,7 +46,6 @@ public class UdpServerChannelHandler extends SimpleChannelHandler {
 			
 			V5Packet packet = decoder.decode( data );
 			if ( packet != null ) {
-				
 				switch( packet.getPacketType() ) {
 				case V5PacketType.PCM_STREAM:
 				case V5PacketType.AAC_STREAM:
