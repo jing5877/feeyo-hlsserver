@@ -20,12 +20,6 @@ public class RtspClientTest {
 private static final Logger LOGGER = LoggerFactory.getLogger( "RtspClient" );
 	
 	private String server_address;
-	private int server_port_0;
-	private int server_port_1;	
-	
-	private int client_port_0;
-	private int client_port_1;
-	
 	private String url;
 	
 	private RtspConnection rtspConn;
@@ -93,10 +87,10 @@ private static final Logger LOGGER = LoggerFactory.getLogger( "RtspClient" );
 		}
 
 		// UDP Transport
-		client_port_0 = ports[0];
-		client_port_1 = ports[1];
-		server_port_0 = 0;
-		server_port_1 = 0;
+		int client_port_0 = ports[0];
+		int client_port_1 = ports[1];
+		int server_port_0 = 0;
+		int server_port_1 = 0;
 		int ssrc = 0;
 		
 		Matcher matcher = Pattern.compile("([^\\s=;]+)=(([^-;]+)(-([^;]+))?)").matcher(transport);

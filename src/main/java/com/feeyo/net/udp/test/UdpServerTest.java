@@ -2,9 +2,9 @@ package com.feeyo.net.udp.test;
 
 import java.io.File;
 
+import com.feeyo.HlsCtx;
 import com.feeyo.net.http.HttpServer;
 import com.feeyo.net.udp.UdpServer;
-import com.feeyo.util.Log4jInitializer;
 
 public class UdpServerTest {
 	
@@ -22,8 +22,7 @@ public class UdpServerTest {
 			directory = dir.getParent();
 		}
 		
-		// 设置 LOG4J （加载faacEncoder.dll）
-		Log4jInitializer.configureAndWatch( directory, "log4j.xml", 30000L);
+		HlsCtx.INSTANCE().init(directory);
 		
 		UdpServer udpServer = new UdpServer();
 		udpServer.startup( 7000 );
