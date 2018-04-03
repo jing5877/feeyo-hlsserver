@@ -1,4 +1,4 @@
-package com.feeyo.net.udp.test;
+package com.feeyo.net.udp.test.packet;
 
 public enum RtpVersion {
 

@@ -1,4 +1,4 @@
-package com.feeyo.net.udp.test;
+package com.feeyo.net.udp.test.packet;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -30,7 +30,7 @@ import java.util.List;
  *
  * @author <a href="http://bruno.biasedbit.com/">Bruno de Carvalho</a>
  */
-public class DataPacket {
+public class DataPacket extends Packet {
 	
     private RtpVersion version;
     private boolean marker;

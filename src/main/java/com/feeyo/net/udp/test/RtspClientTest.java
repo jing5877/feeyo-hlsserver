@@ -1,175 +1,151 @@
 package com.feeyo.net.udp.test;
 
-import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.jboss.netty.bootstrap.ConnectionlessBootstrap;
+import org.apache.commons.lang.StringUtils;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.FixedReceiveBufferSizePredictor;
-import org.jboss.netty.channel.FixedReceiveBufferSizePredictorFactory;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.channel.socket.DatagramChannel;
-import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
-
-import com.feeyo.hls.HlsLiveStreamType;
-import com.feeyo.net.http.util.HlsRpcUtil;
-import com.feeyo.net.udp.UdpClient;
-import com.feeyo.net.udp.UdpClientChannelHandler;
-import com.feeyo.net.udp.packet.ByteUtil;
-import com.feeyo.net.udp.packet.V5Packet;
-import com.feeyo.net.udp.packet.V5PacketEncoder;
-import com.feeyo.net.udp.packet.V5PacketIdGenerator;
-import com.feeyo.net.udp.packet.V5PacketType;
-import com.feeyo.net.udp.test.UdpClientTest.BuffPacket;
+import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
+import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.jboss.netty.handler.codec.http.HttpResponse;
+import org.jboss.netty.handler.codec.rtsp.RtspHeaders;
+import org.jboss.netty.handler.codec.rtsp.RtspMethods;
+import org.jboss.netty.handler.codec.rtsp.RtspVersions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RtspClientTest {
 	
-	private ConnectionlessBootstrap dataBootstrap;
-	private ChannelFactory factory = new NioDatagramChannelFactory(Executors.newCachedThreadPool());
-	private DatagramChannel dataChannel;
+private static final Logger LOGGER = LoggerFactory.getLogger( "RtspClient" );
 	
-	private ConcurrentHashMap<Integer, BuffPacket> map = new ConcurrentHashMap<Integer, BuffPacket>();
-	private V5PacketIdGenerator idGenerator = new V5PacketIdGenerator();
-	private int currentIndex = 1;
+	private String server_address;
+	private int server_port_0;
+	private int server_port_1;	
 	
-	private String rtspUrl = "";
+	private int client_port_0;
+	private int client_port_1;
 	
-	public void startUp() {
-		
-		RtspClient rtspClient = new RtspClient(rtspUrl);
-		rtspClient.start();
-		
-		Thread thread = new Thread(new TransmitWorker());
-		thread.start();
-		
-		this.dataBootstrap = new ConnectionlessBootstrap(factory);
-		dataBootstrap.setOption("receiveBufferSizePredictor", new FixedReceiveBufferSizePredictor(2048));
-		dataBootstrap.setOption("receiveBufferSizePredictorFactory", new FixedReceiveBufferSizePredictorFactory(2048));
-
-		this.dataBootstrap.getPipeline().addLast("handler", new SimpleChannelUpstreamHandler() {
-			@Override
-			public void messageReceived(ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
-					
-				ChannelBuffer channelBuffer = (ChannelBuffer) e.getMessage();
-				byte[] data = channelBuffer.array();
-				if (data.length <= 12)
-					return;
-				BuffPacket buff11 = new BuffPacket(idGenerator.getId(), DataPacket.decode(data).getDataAsArray());
-				map.put(buff11.id , buff11);
-			}
-		});
-		this.dataChannel = (DatagramChannel) this.dataBootstrap.bind(new InetSocketAddress(8360));
-
+	private String url;
+	
+	private RtspConnection rtspConn;
+	private RtpDataSource rtpDataSource;	
+	
+	public RtspClientTest(String url) {
+		this.url = url;
 	}
 	
-	public void close() {
-
-		if (this.dataChannel != null)
-			this.dataChannel.close();
-
-		if (this.dataBootstrap != null)
-			this.dataBootstrap.releaseExternalResources();
+	public void start() throws IOException {			
+		// parse  
+		Pattern pattern = Pattern.compile("^rtsp://([^:/]+)(:([0-9]+))?");
+		Matcher m = pattern.matcher(url);
+		if ( !m.find() ) {			
+			System.out.println("Illegal RTSP address[" + url + "]");			
+			throw new IllegalArgumentException("Illegal RTSP address[" + url + "]");
+		}
+		String host = m.group(1);
+		int port = Integer.parseInt(m.group(3));
+		this.server_address = host;
 		
+		this.rtspConn = new RtspConnection(host, port);
+		this.rtspConn.connect();		
+		
+		describe();		
+		setup();		
+		play();		
 	}
 	
-	class TransmitWorker extends UdpClientChannelHandler implements Runnable {
+	public void describe() {			
+		DefaultHttpRequest request = new DefaultHttpRequest(RtspVersions.RTSP_1_0, RtspMethods.DESCRIBE, url);
+		request.headers().add(RtspHeaders.Names.ACCEPT, "application/sdp");
+		HttpResponse resp = rtspConn.send(request).get();
+		ChannelBuffer data = resp.getContent();
+		byte[] array = new byte[ data.readableBytes() ];
+		data.readBytes(array);
+		String sdp = new String( array );
 		
-		private int MTU = 4096;
-		private byte[] reserved = new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-		
-		private V5PacketEncoder encoder = new V5PacketEncoder();
-		private int packetSender = 1000131;
-		
-		private AtomicBoolean linkConnectionStatus = new AtomicBoolean(false);
-		private UdpClient udpClient = null;
-		
-		public TransmitWorker() {
-			String MANAGE_URI = "http://localhost:8888/hls/manage";
-			long streamId = 1000131;
-			List<String> aliasNames = Arrays.asList("11", "22");
-			
-			boolean resp = HlsRpcUtil.INSTANCE().startLiveStream(MANAGE_URI, streamId, HlsLiveStreamType.PCM, aliasNames, 
-					8000F, 16, 1, 25);
-			if ( !resp ) {
-				System.out.println("Initialze failed!");
-				return;
-			}
-			
-			udpClient = new UdpClient(this);
+		System.out.println("-----------------------------");	
+		String[] lines = sdp.split("\n");
+		for (String line : lines) {			
+			System.out.println( line );
 		}
+	}
+	
+	public boolean setup() throws IOException {
 		
-		@Override
-		public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-			
-			InetSocketAddress addr = (InetSocketAddress)ctx.getChannel().getRemoteAddress();
-	        if (addr == null){
-	            addr = (InetSocketAddress)e.getRemoteAddress();
-	        }
-	        
-	        ChannelBuffer channelBuffer = (ChannelBuffer) e.getMessage();
-	        byte[] buff = channelBuffer.array();
-	        
-	        System.out.println("######################################");
-	        System.out.println( dump(buff, 0, buff.length) );
-	        
-	        if ( buff[0] == 0x11 && buff[1] == 0x12 ) {
-	        	int pktId = (int)ByteUtil.bytesToInt(buff[2], buff[3], buff[4], buff[5]);
-	        	if(buff[10] == V5PacketType.PCM_STREAM) {
-	        	
-		        	BuffPacket  pkt2 = map.get( pktId );
-		        	if ( pkt2 != null ) {
-		        		pkt2.isResp = true;
-		        		linkConnectionStatus.set(true);
-		        	}
-	        	}
-	        	System.out.println( pktId );
-	        }
+		int[] ports = PortUtil.findAvailablePorts(2);		
+		String transport = String.format("RTP/AVP;unicast;client_port=%d-%d", ports[0], ports[1]);	
+		
+		HttpRequest request = new DefaultHttpRequest(RtspVersions.RTSP_1_0, RtspMethods.SETUP, url );	
+        request.headers().add( RtspHeaders.Names.TRANSPORT, transport );
+        
+        HttpResponse resp = rtspConn.send(request).get();
+		if ( resp == null ) {
+			LOGGER.warn("fail setup {}", url);
+			return false;
+		}
+        
+		transport = resp.headers().get(RtspHeaders.Names.TRANSPORT);
+		if (!StringUtils.startsWithIgnoreCase(transport, "RTP/AVP/UDP;unicast")
+				&& !StringUtils.startsWithIgnoreCase(transport, "RTP/AVP;unicast")) {
+			LOGGER.error("can't support {}", transport);
+			return false;
 		}
 
-		@Override
-		public void run() {
-			while(true) {
-				BuffPacket buff11 = map.get(currentIndex);
-				if(buff11 != null) {
-					while(!map.get(currentIndex).isResp) {
-						
-						List<V5Packet> packets = encoder.encode(MTU, packetSender, V5PacketType.PCM_STREAM, reserved, buff11.id, buff11.buff);
-						if(packets != null) {
-
-							for(V5Packet packet : packets) {
-							
-								byte[] payload = encoder.encode(packet);
-								if(payload != null)
-									udpClient.write(payload, new InetSocketAddress("127.0.0.1", 7000));
-								
-								try {
-									Thread.sleep(10);
-								} catch (InterruptedException e) {
-									e.printStackTrace();
-								}
-								
-								while(!linkConnectionStatus.get()) {
-								}
-							}
-						}
-					}
-					map.remove(currentIndex++);
-				}
+		// UDP Transport
+		client_port_0 = ports[0];
+		client_port_1 = ports[1];
+		server_port_0 = 0;
+		server_port_1 = 0;
+		int ssrc = 0;
+		
+		Matcher matcher = Pattern.compile("([^\\s=;]+)=(([^-;]+)(-([^;]+))?)").matcher(transport);
+		while (matcher.find()) {
+			String key = matcher.group(1).toLowerCase();
+			if ("client_port".equals(key)) {
+				client_port_0 = Integer.parseInt( matcher.group(3) );
+				client_port_1 = Integer.parseInt( matcher.group(5) );
+			} else if ("server_port".equals(key)) {
+				server_port_0 = Integer.parseInt( matcher.group(3) );
+				server_port_1 = Integer.parseInt( matcher.group(5) );
+			} else if ("ssrc".equals(key)) {
+				ssrc = Integer.parseInt( matcher.group(2) );
+			} else {
+				LOGGER.warn("ignored [{}={}]", key, matcher.group(2));
 			}
 		}
 		
+		System.out.println(server_address + ", " + server_port_0 +  ", " +  server_port_1 
+				+ ", " +  client_port_0 + ", " +  client_port_1  + ", " + ssrc);
+		
+		final String sessionId = resp.headers().get(RtspHeaders.Names.SESSION);
+		
+        this.rtpDataSource = new RtpDataSource(server_address, server_port_0, server_port_1, client_port_0, client_port_1);	
+        this.rtpDataSource.setSsrc(ssrc);
+        this.rtpDataSource.setSessionId(sessionId);
+        boolean connected = this.rtpDataSource.connect();
+        if ( !connected ) {
+			throw new IOException("fail connect " + transport);
+		}
+        
+        return true;
+        
 	}
 	
+	public void play() {
+		DefaultHttpRequest request = new DefaultHttpRequest(RtspVersions.RTSP_1_0, RtspMethods.PLAY, url );	
+		request.headers().add(RtspHeaders.Names.RANGE, "npt=0.000-");		
+		this.rtspConn.send(request);
+	}
+		
 	public static void main(String[] args) {
-		RtspClientTest udpClientTest = new RtspClientTest();
-		udpClientTest.startUp();
+		
+		String rtspUrl = "";
+		RtspClientTest fmsClient = new RtspClientTest(rtspUrl);
+		try {
+			fmsClient.start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
-
 }
