@@ -139,7 +139,7 @@ public class HlsLiveStream {
 						if ( idx < minTsIndex && ( System.currentTimeMillis() - tsSegment.getLasttime() > 30 * 1000 ) ) {
 							tsSegments.remove( idx );
 							
-							 LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
+							LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
 						}
 					}
 				}
@@ -175,8 +175,20 @@ public class HlsLiveStream {
     	
     	TsSegment tsSegment = null;
     	if ( index < 4 ) {
-    		List<TsSegment> adTsSegments = adsMagr.getAdsTsSegments("audio", 8000F, 16, 1, 25);
-    		tsSegment = adTsSegments.get( (int)index - 1);
+    		
+    		String type = "audio";
+    		switch( streamType ) {
+        	case HlsLiveStreamType.YUV:
+        	case HlsLiveStreamType.H264:
+        		type = "video";
+        		break;
+        	case HlsLiveStreamType.AAC_H264_MIXED:
+        		type = "mixed";
+        		break;
+        	}
+    		
+    		List<TsSegment> adTsSegments = adsMagr.getAdsTsSegments(type, sampleRate, sampleSizeInBits, channels, fps);
+    		tsSegment = adTsSegments.get((int)index - 1);
     	} else {
     		tsSegment = tsSegments.get( index );
     	}
@@ -272,7 +284,7 @@ public class HlsLiveStream {
     	if( tsSegmenter != null) {
 	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, reserved );
 	        if ( tsData != null) {
-
+	        	
 	        	long tsIndex = tsSegmentIndexGen.getAndIncrement();
 	            TsSegment tsSegment = new TsSegment(  tsIndex +".ts", tsData, tsSegmenter.getTsSegTime(), false);
 	            tsSegments.put(tsIndex, tsSegment);
