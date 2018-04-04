@@ -303,7 +303,7 @@ public class TsWriter {
 				if ( isFristTs ) {
 					
 					 tsBuf[offset++] = 0x07;                						 							// size
-					 tsBuf[offset++] |= isFirstPes ? (byte)0x50 : (byte)0x10;            						// flag bits 0001 0000 , 0x10
+					 tsBuf[offset++] |= isFirstPes ? (byte)0x50 : ( isAudio ? (byte)0x50 :(byte)0x10);            						// flag bits 0001 0000 , 0x10
 					 																							// flag bits 0101 0000 , 0x50
 					 /* write PCR */
 					 long pcr = pts;
@@ -321,7 +321,7 @@ public class TsWriter {
 					tsBuf[offset++] = 0x01;
 					tsBuf[offset++] = isAudio ? (byte) 0xc0 : (byte) 0xe0;
 					
-					int header_size = 5 + 5;
+					int header_size = isAudio ? 5 : 5 + 5;
 					
 					// PES 包长度
 					if (isAudio) {
@@ -335,7 +335,7 @@ public class TsWriter {
 					
 					// PES 包头识别标志
 					tsBuf[offset++] = (byte) 0x80; 						
-					tsBuf[offset++] = (byte) 0xc0; 	// (1100 0000) PTS DTS						
+					tsBuf[offset++] = isAudio ? (byte) 0x80 : (byte) 0xc0; 	// (1100 0000) PTS DTS						
 					tsBuf[offset++] = (byte) header_size;
 	
 					
@@ -347,11 +347,13 @@ public class TsWriter {
 					tsBuf[offset++] = (byte) ((pts << 1) & 0xFE | 0x01);
 	
 					/* write dts */
-					tsBuf[offset++] = (byte) (((dts >> 29) & 0xFE) | 0x11);
-					tsBuf[offset++] = (byte) ((dts >> 22) & 0xff);
-					tsBuf[offset++] = (byte) (((dts >> 14) & 0xFE) | 0x01);
-					tsBuf[offset++] = (byte) ((dts >> 7) & 0xff);
-					tsBuf[offset++] = (byte) ((dts << 1) & 0xFE | 0x01);
+					if(!isAudio) {
+						tsBuf[offset++] = (byte) (((dts >> 29) & 0xFE) | 0x11);
+						tsBuf[offset++] = (byte) ((dts >> 22) & 0xff);
+						tsBuf[offset++] = (byte) (((dts >> 14) & 0xFE) | 0x01);
+						tsBuf[offset++] = (byte) ((dts >> 7) & 0xff);
+						tsBuf[offset++] = (byte) ((dts << 1) & 0xFE | 0x01);
+					}
 		     		
 		     		// H264 NAL
 					if ( !isAudio && Bytes.indexOf(frameBuf, H264_NAL ) == -1 ) {
