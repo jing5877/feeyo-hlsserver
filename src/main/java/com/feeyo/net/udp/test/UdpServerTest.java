@@ -3,6 +3,7 @@ package com.feeyo.net.udp.test;
 import java.io.File;
 
 import com.feeyo.HlsCtx;
+import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.net.http.HttpServer;
 import com.feeyo.net.udp.UdpServer;
 
@@ -23,6 +24,7 @@ public class UdpServerTest {
 		}
 		
 		HlsCtx.INSTANCE().init(directory);
+		AdsMagr.initialize();
 		
 		UdpServer udpServer = new UdpServer();
 		udpServer.startup( 7000 );
