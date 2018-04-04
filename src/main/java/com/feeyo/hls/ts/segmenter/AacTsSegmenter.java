@@ -45,6 +45,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 		this.frameNum = (TS_DURATION * (int)sampleRate) >> 10;									// AAC 帧的数目， faac以1024位为一帧
 		this.tsSegTime = 1.0F * (frameNum << 10) / (int)sampleRate;								// tsSegment的持续时间，以秒为单位
 		this.ptsIncPerFrame = (90000 << 10) / (int)sampleRate;
+		this.tsSecs = new byte[(int) Math.ceil(1.0 * frameNum / TS_PES_AU_NUM)][];
 	}
 
 	public void prepare4nextTs() {
@@ -109,8 +110,10 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
                 byte[] tsSegment = new byte[tsSegmentLen];
                 int tsSegmentPtr = 0;
 				for (int i = 0; i < tsSecs.length; i++) {
-                    System.arraycopy(tsSecs[i], 0, tsSegment, tsSegmentPtr, tsSecs[i].length);
-                    tsSegmentPtr += tsSecs[i].length;
+					if(tsSecs[i] != null) {
+	                    System.arraycopy(tsSecs[i], 0, tsSegment, tsSegmentPtr, tsSecs[i].length);
+	                    tsSegmentPtr += tsSecs[i].length;
+					}
                 }
 				isFirstPes = true;
                 prepare4nextTs();

@@ -75,7 +75,7 @@ public class ConfigLoader {
 				
 				if ( type != null &&  type.equalsIgnoreCase("audio") ) {
 					float sampleRate = getFloatAttribute(nameNodeMap, "sampleRate", 8000f);
-					int sampleSizeInBits = getIntAttribute(nameNodeMap, "type", 16);
+					int sampleSizeInBits = getIntAttribute(nameNodeMap, "sampleSizeInBits", 16);
 					int channels = getIntAttribute(nameNodeMap, "channels", 1);
 					
 					adsCfg.setSampleRate(sampleRate);
@@ -91,7 +91,7 @@ public class ConfigLoader {
 				} else if ( type != null &&  type.equalsIgnoreCase("mixed") ) {
 					
 					float sampleRate = getFloatAttribute(nameNodeMap, "sampleRate", 8000f);
-					int sampleSizeInBits = getIntAttribute(nameNodeMap, "type", 16);
+					int sampleSizeInBits = getIntAttribute(nameNodeMap, "sampleSizeInBits", 16);
 					int channels = getIntAttribute(nameNodeMap, "channels", 1);
 					int fps = getIntAttribute(nameNodeMap, "fps", 1);
 					
