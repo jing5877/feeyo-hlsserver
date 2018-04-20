@@ -34,12 +34,14 @@ public class HlsLiveStreamMagr {
     private static ExecutorService executor = Executors.newFixedThreadPool(10);
     private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
 
-    
     // alias -> streamId 
 	private static Map<String, Long> aliasToStreamIdCache = new ConcurrentHashMap<String, Long>();
     
     // streamId -> live stream
     private static Map<Long, HlsLiveStream> streamIdToLiveStreamCache = new ConcurrentHashMap<Long, HlsLiveStream>();
+    
+    // streamId -> volume control
+    private static Map<Long, VolumeControl> streamIdToVolumeControlCache = new ConcurrentHashMap<Long, VolumeControl>();
     
     private HlsLiveStreamMagr() {}
     
@@ -92,6 +94,8 @@ public class HlsLiveStreamMagr {
                     	if(tmpStreamId == iter.next())
                     		iter.remove();
                     }
+                    
+                    streamIdToVolumeControlCache.remove(tmpStreamId);
                 }
 			}
     		
@@ -152,6 +156,10 @@ public class HlsLiveStreamMagr {
 			for(String aliasName : aliasNames)
 				aliasToStreamIdCache.put(aliasName, streamId);
 		}
+		
+		VolumeControl volumeCtl = streamIdToVolumeControlCache.get(streamId);
+		if( volumeCtl == null ) 
+			streamIdToVolumeControlCache.put( streamId, new VolumeControl());
     }
     
     public void closeHlsLiveStream(long streamId) {
@@ -167,6 +175,8 @@ public class HlsLiveStreamMagr {
 			liveStream.close();
 			liveStream = null;
 		}
+		
+		streamIdToVolumeControlCache.remove(streamId);
     }
     
     public void closeAllHlsLiveStream() {
@@ -182,6 +192,8 @@ public class HlsLiveStreamMagr {
     			liveStream = null;
     		}
     	}
+    	
+    	streamIdToVolumeControlCache.clear();
     	
     }
     
@@ -221,8 +233,12 @@ public class HlsLiveStreamMagr {
 					if ( isPass ) {
 						byte[] packetData = packet.getPacketData();
 						byte[] reserved = packet.getPacketReserved();
-						if (V5PacketType.PCM_STREAM == packet.getPacketType())
+						if (V5PacketType.PCM_STREAM == packet.getPacketType()) {
 							packetData = pcmuDecoder.process(packet.getPacketData());
+							VolumeControl volumeCtl = streamIdToVolumeControlCache.get(packetSender);
+							if(volumeCtl != null)
+								packetData = volumeCtl.autoControlVolume(packetData);
+						}
 						liveStream.addAvStream(packetType, packetReserved, packetData, reserved);
 						
 					} else {
@@ -236,5 +252,5 @@ public class HlsLiveStreamMagr {
 			}
 		});
 	}
-
+	
 }
