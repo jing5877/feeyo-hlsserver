@@ -79,7 +79,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 			if (++aacFrameCounter % TS_PES_AU_NUM == 0) {
 				//try{
 					pts += ptsIncPerFrame * TS_PES_AU_NUM;		// 计算 PTS
-					
+					dts = pts;
                 	//byte[] tsBuf = tsEncoder.encode(true, aacBuf, aacBufPtr, pts, pts, true, isFirstPes);
 					byte[] tsBuf = tsWriter.writeAAC(isFirstPes, aacBuf, aacBufPtr, pts, dts);
                 	isFirstPes = false;
@@ -95,6 +95,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 				if (aacBufPtr > 0) {
 					//try {
 						pts += ptsIncPerFrame * (frameNum % TS_PES_AU_NUM);	// 计算 PTS
+						dts = pts;
 	                    //byte[] tsBuf = tsEncoder.encode(true, aacBuf, aacBufPtr, pts, pts, true, false);
 						byte[] tsBuf = tsWriter.writeAAC(false, aacBuf, aacBufPtr, pts, dts);
 	                    tsSegmentLen += tsBuf.length;
@@ -131,7 +132,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 			FrameData frameData =  new FrameData();
 			frameData.buf = rawData;
 			frameData.pts = pts;
-			frameData.dts = 0;
+			frameData.dts = pts;
 			frameData.isAudio = true;
 			return frameData;
         }	
