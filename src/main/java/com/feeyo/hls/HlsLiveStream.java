@@ -131,12 +131,11 @@ public class HlsLiveStream {
 				}
 
 				// delete
-				if ( minTsIndex - 1 > 3 ) {
-					
+				if ( minTsIndex - 1 > 3 || minTsIndex == -1 ) {
 					for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
 						long idx =  entry.getKey();
 						TsSegment tsSegment = entry.getValue();
-						if ( idx < minTsIndex && ( System.currentTimeMillis() - tsSegment.getLasttime() > 30 * 1000 ) ) {
+						if ( (idx < minTsIndex || minTsIndex == -1) && ( System.currentTimeMillis() - tsSegment.getLasttime() > 30 * 1000 ) ) {
 							tsSegments.remove( idx );
 							
 							LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
