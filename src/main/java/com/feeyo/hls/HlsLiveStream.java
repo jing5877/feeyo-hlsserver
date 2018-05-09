@@ -110,7 +110,7 @@ public class HlsLiveStream {
     
     
     //
-    public void removeTimeoutSessionAndTsSegments(long now, int timeout) {
+    public void removeTimeoutClientSessionAndTsSegments(long now, int timeout) {
     	
     	// remove timeout client session
 		for (String sessionId : clientSessions.keySet()) {

@@ -1,6 +1,5 @@
 package com.feeyo.hls;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,7 @@ public class HlsLiveStreamMagr {
 	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		//
 	
     private static ExecutorService executor = Executors.newFixedThreadPool(10);
-    private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
+    private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(3);
 
     // alias -> streamId 
 	private static Map<String, Long> aliasToStreamIdCache = new ConcurrentHashMap<String, Long>();
@@ -61,38 +60,43 @@ public class HlsLiveStreamMagr {
     
     public void startup() {
     	
-		// delete expired session
+		// delete expired liveStream & clientSession
     	scheduledExecutor.scheduleAtFixedRate( new Runnable() {
 
 			@Override
 			public void run() {
 				
-				List<Long> expiredStreamIds = new ArrayList<>();
-            
-            	long now = System.currentTimeMillis();
-                for (HlsLiveStream hlsLiveStream : streamIdToLiveStreamCache.values()) {
-                    
-                	if (now - hlsLiveStream.getMtime() > LIVE_STREAM_TIMEOUT_MS) {
-                        hlsLiveStream.close();
-                        expiredStreamIds.add(hlsLiveStream.getStreamId());
-                        
-                    } else {
-                        
-                    	// 
-                    	hlsLiveStream.removeTimeoutSessionAndTsSegments(now, SESSION_TIMEOUT_MS );
-                    }
-                }
+				// expired
+				try {
+	            	long now = System.currentTimeMillis();
+	                for (HlsLiveStream liveStream : streamIdToLiveStreamCache.values()) {
+	                    
+	                	if (now - liveStream.getMtime() > LIVE_STREAM_TIMEOUT_MS) {
+	                       
+	                        //
+	                        long streamId = liveStream.getStreamId();
+	                        streamIdToLiveStreamCache.remove(streamId);
+	                        Iterator<Long> iter = aliasToStreamIdCache.values().iterator();
+	                        while(iter.hasNext()) {
+	                        	if(streamId == iter.next())
+	                        		iter.remove();
+	                        }
+	                        streamIdToVolumeControlCache.remove(streamId);     
+	                        
+	                        //
+	                        liveStream.close();
+	
+	                    } else {
+	                        
+	                    	// 
+	                    	liveStream.removeTimeoutClientSessionAndTsSegments(now, SESSION_TIMEOUT_MS );
+	                    }
+	                }
+				}catch(Throwable e) {
+					LOGGER.warn("live stream task err:", e);
+				}
 
-                for (Long tmpStreamId : expiredStreamIds) {
-                    streamIdToLiveStreamCache.remove(tmpStreamId);
-                    Iterator<Long> iter = aliasToStreamIdCache.values().iterator();
-                    while(iter.hasNext()) {
-                    	if(tmpStreamId == iter.next())
-                    		iter.remove();
-                    }
-                    
-                    streamIdToVolumeControlCache.remove(tmpStreamId);
-                }
+              
 			}
     		
     	}, 10, 10, TimeUnit.SECONDS);
