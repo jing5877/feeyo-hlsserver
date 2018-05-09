@@ -1,13 +1,13 @@
 package com.feeyo.hls;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,12 +59,10 @@ public class HlsLiveStream {
     
     //
     private Map<Long, TsSegment> tsSegments = new ConcurrentHashMap<Long, TsSegment>(); 		
-    private AtomicLong tsSegmentIndexGen = new AtomicLong(4);										// 4...
-    private List<Long> tsSegmentIndexs = new ArrayList<Long>();
-    private ReadWriteLock _lock = new ReentrantReadWriteLock();
+    private AtomicLong tsIndexGen = new AtomicLong(4);										// 4...
     
     // ADS
-    private static AdsMagr adsMagr;												// 1,2,3
+    private static AdsMagr adsMagr;															// 1,2,3
     
     static {
     	if (adsMagr == null)
@@ -150,20 +148,27 @@ public class HlsLiveStream {
     
     // length= 3 ~ 5
     public long[] fetchTsIndexs() {
-    	
-    	if ( tsSegmentIndexs.size() < 3)  {
+    
+    	// 
+    	Set<Long> indexSET = tsSegments.keySet();
+    	if ( indexSET.size() < 3 ) {
     		return null;
     	}
     	
     	//
-    	try {
-    		_lock.readLock().lock();
-    		long[] indexs = Longs.toArray( tsSegmentIndexs );
-    		return indexs;
+    	Long[] indexs = indexSET.toArray(new Long[indexSET.size()]);
+    	Arrays.sort( indexs );
+    	
+    	if ( indexs.length > 5 ) {
+    		Long[] tmpIndexs = new Long[5];
+    		System.arraycopy(indexs, indexs.length - 5, tmpIndexs, 0, 5);
     		
-    	} finally {
-    		_lock.readLock().unlock();
+    		return  ArrayUtils.toPrimitive( tmpIndexs );
+    		
+    	} else {
+    		return ArrayUtils.toPrimitive( indexs );
     	}
+ 
     }
     
     public TsSegment fetchTsSegmentByIndex(long index) {
@@ -264,7 +269,7 @@ public class HlsLiveStream {
 
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
+	public void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
     	
     	this.mtime = System.currentTimeMillis();
 
@@ -272,21 +277,11 @@ public class HlsLiveStream {
 	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, reserved );
 	        if ( tsData != null) {
 	        	
-	        	long tsIndex = tsSegmentIndexGen.getAndIncrement();
+	        	long tsIndex = tsIndexGen.getAndIncrement();
 	            TsSegment tsSegment = new TsSegment(  tsIndex +".ts", tsData, tsSegmenter.getTsSegTime(), false);
 	            tsSegments.put(tsIndex, tsSegment);
 	            
 	            LOGGER.info("add ts {} ", tsSegment);
-	            
-	            try {
-	        		_lock.writeLock().lock();
-		            if ( tsSegmentIndexs.size() >=5 ) {
-		            	tsSegmentIndexs.remove(0);
-		            }
-		            tsSegmentIndexs.add( tsIndex );
-	            } finally {
-	            	_lock.writeLock().unlock();
-	            }
 	        }
     	}
     }
