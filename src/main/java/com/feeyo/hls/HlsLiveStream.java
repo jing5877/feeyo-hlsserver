@@ -270,7 +270,7 @@ public class HlsLiveStream {
 
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	public void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
+	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
     	
     	this.mtime = System.currentTimeMillis();
 
