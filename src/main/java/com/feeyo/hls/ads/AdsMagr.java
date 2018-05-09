@@ -41,136 +41,143 @@ public class AdsMagr {
 	
 	//
 	public static void initialize() {
-		
-		if ( !isLoading.compareAndSet(false, true) ) {
+
+		if (!isLoading.compareAndSet(false, true)) {
 			return;
 		}
-		
+
 		try {
-		
+
 			String adsPath = HlsCtx.INSTANCE().getHomePath() + File.separator + "ads";
-				
-			File adsDirectory = new File( adsPath );
+
+			File adsDirectory = new File(adsPath);
 			if (adsDirectory.exists() && adsDirectory.isDirectory()) {
-				
-					List<AdsCfg> adsCfgs = HlsCtx.INSTANCE().getAdsCfgs();
-					for(AdsCfg adsCfg: adsCfgs) {
-						
-						String md5 = null;
-						String filePath =  adsPath + File.separator + adsCfg.getName();
-						File file = new File( filePath );
-						
-						if(file.isFile() && file.exists()) {
-							
-							InputStream in = null;
-							try {
-								in = new FileInputStream(file);
-								byte[] adRawData = new byte[(int) file.length()];
-								in.read(adRawData, 0, adRawData.length);
-								switch( adsCfg.getType() ) {
-								
-								case "audio":
-									
-									md5 = Md5.md5_32( adsCfg.getType() + adsCfg.getSampleRate() + adsCfg.getSampleSizeInBits() + 
-											adsCfg.getChannels() );
-									
-									// cache aac ts
-									if(adRawData != null) {
-										
-										AacTsSegmenter aacTsSegmenter = new AacTsSegmenter();
-										aacTsSegmenter.initialize(adsCfg.getSampleRate(), adsCfg.getSampleSizeInBits(), adsCfg.getChannels(), adsCfg.getFps());
-										
-										List<TsSegment> aacTsSegs = new ArrayList<TsSegment>();
-										List<Integer> list = ByteUtil.kmp(adRawData, new byte[] {(byte) 0xff, (byte) 0xf1});
-										int index = 1;
-										for (int k = 0; k < list.size(); k++) {
-											byte[] frameBuf = null;
-											
-											if(k < list.size() -1) {
-												frameBuf = Arrays.copyOfRange(adRawData, list.get(k), list.get(k+1));
-											}else {
-												frameBuf = Arrays.copyOfRange(adRawData, list.get(k), adRawData.length);
-											}
-		
-											byte[] tsSegment = aacTsSegmenter.getTsBuf(V5PacketType.AAC_STREAM, frameBuf, null);
-											if (tsSegment != null)
-												aacTsSegs.add(new  TsSegment((index++)+".ts",tsSegment,aacTsSegmenter.getTsSegTime(),true));
+
+				List<AdsCfg> adsCfgs = HlsCtx.INSTANCE().getAdsCfgs();
+				for (AdsCfg adsCfg : adsCfgs) {
+
+					String md5 = null;
+					String filePath = adsPath + File.separator + adsCfg.getName();
+					File file = new File(filePath);
+
+					if (file.isFile() && file.exists()) {
+
+						InputStream in = null;
+						try {
+							in = new FileInputStream(file);
+							byte[] adRawData = new byte[(int) file.length()];
+							in.read(adRawData, 0, adRawData.length);
+							switch (adsCfg.getType()) {
+
+							case "audio":
+
+								md5 = Md5.md5_32(adsCfg.getType() + adsCfg.getSampleRate()
+										+ adsCfg.getSampleSizeInBits() + adsCfg.getChannels());
+
+								// cache aac ts
+								if (adRawData != null) {
+
+									AacTsSegmenter aacTsSegmenter = new AacTsSegmenter();
+									aacTsSegmenter.initialize(adsCfg.getSampleRate(), adsCfg.getSampleSizeInBits(),
+											adsCfg.getChannels(), adsCfg.getFps());
+
+									List<TsSegment> aacTsSegs = new ArrayList<TsSegment>();
+									List<Integer> list = ByteUtil.kmp(adRawData,
+											new byte[] { (byte) 0xff, (byte) 0xf1 });
+									int index = 1;
+									for (int k = 0; k < list.size(); k++) {
+										byte[] frameBuf = null;
+
+										if (k < list.size() - 1) {
+											frameBuf = Arrays.copyOfRange(adRawData, list.get(k), list.get(k + 1));
+										} else {
+											frameBuf = Arrays.copyOfRange(adRawData, list.get(k), adRawData.length);
 										}
-										
-										adsSegs.put(md5, aacTsSegs);
-										
+
+										byte[] tsSegment = aacTsSegmenter.getTsBuf(V5PacketType.AAC_STREAM, frameBuf,
+												null);
+										if (tsSegment != null)
+											aacTsSegs.add(new TsSegment((index++) + ".ts", tsSegment,
+													aacTsSegmenter.getTsSegTime(), true));
 									}
-									
-									break;
-									
-								case "video":
-									
-									md5 = Md5.md5_32( adsCfg.getType() + adsCfg.getFps());
-									H264TsSegmenter h264TsSegmenter = new H264TsSegmenter();
-									h264TsSegmenter.initialize(adsCfg.getSampleRate(), adsCfg.getSampleSizeInBits(), adsCfg.getChannels(), adsCfg.getFps());
-									// cache h264 ts
-									if(adRawData != null) {
-										
-										List<TsSegment> h264TsSegs = new ArrayList<TsSegment>();
-										h264TsSegmenter = new H264TsSegmenter();
-										int index = 0;
-										
-										int ptr = 0;
-										while(ptr < adRawData.length) {
-											
-											int len = ptr + 2048 < adRawData.length ?  2048 : adRawData.length - ptr;
-											byte[] dest = new byte[len]; 
-											System.arraycopy(adRawData, ptr, dest, 0, len);
-											byte[]  tsSegment = h264TsSegmenter.getTsBuf(V5PacketType.H264_STREAM, dest, null);
-											if(tsSegment != null)
-												h264TsSegs.add(new TsSegment((++index)+".ts", tsSegment, h264TsSegmenter.getTsSegTime(),true));
-											ptr += 2048;
-										}
-										
-										adsSegs.put(md5, h264TsSegs);
-									}
-									
-									break;
-									
-								case "mixed":
-									
-									md5 = Md5.md5_32( adsCfg.getType() + adsCfg.getSampleRate() + adsCfg.getSampleSizeInBits() + 
-											adsCfg.getChannels() + adsCfg.getFps());
-									AacH264MixedTsSegmenter mixedTsSegmenter = new AacH264MixedTsSegmenter();
-									mixedTsSegmenter.initialize(adsCfg.getSampleRate(), adsCfg.getSampleSizeInBits(), adsCfg.getChannels(), adsCfg.getFps());
-									if(adRawData != null) {
-										List<TsSegment> mixedTsSegs = new ArrayList<TsSegment>();
-										// TODO segment
-										adsSegs.put(md5, mixedTsSegs);
-									}
-									
-									break;
-									
-								default :
-									continue;
+
+									adsSegs.put(md5, aacTsSegs);
+
 								}
-								
-							} catch (Exception e) {
-								LOGGER.error(e.getMessage());
-							}finally {
-								if(in != null) {
-									try {
-										in.close();
-									} catch (IOException e) {
+
+								break;
+
+							case "video":
+
+								md5 = Md5.md5_32(adsCfg.getType() + adsCfg.getFps());
+								H264TsSegmenter h264TsSegmenter = new H264TsSegmenter();
+								h264TsSegmenter.initialize(adsCfg.getSampleRate(), adsCfg.getSampleSizeInBits(),
+										adsCfg.getChannels(), adsCfg.getFps());
+								// cache h264 ts
+								if (adRawData != null) {
+
+									List<TsSegment> h264TsSegs = new ArrayList<TsSegment>();
+									h264TsSegmenter = new H264TsSegmenter();
+									int index = 0;
+
+									int ptr = 0;
+									while (ptr < adRawData.length) {
+
+										int len = ptr + 2048 < adRawData.length ? 2048 : adRawData.length - ptr;
+										byte[] dest = new byte[len];
+										System.arraycopy(adRawData, ptr, dest, 0, len);
+										byte[] tsSegment = h264TsSegmenter.getTsBuf(V5PacketType.H264_STREAM, dest,
+												null);
+										if (tsSegment != null)
+											h264TsSegs.add(new TsSegment((++index) + ".ts", tsSegment,
+													h264TsSegmenter.getTsSegTime(), true));
+										ptr += 2048;
 									}
+
+									adsSegs.put(md5, h264TsSegs);
 								}
+
+								break;
+
+							case "mixed":
+
+								md5 = Md5.md5_32(adsCfg.getType() + adsCfg.getSampleRate()
+										+ adsCfg.getSampleSizeInBits() + adsCfg.getChannels() + adsCfg.getFps());
+								AacH264MixedTsSegmenter mixedTsSegmenter = new AacH264MixedTsSegmenter();
+								mixedTsSegmenter.initialize(adsCfg.getSampleRate(), adsCfg.getSampleSizeInBits(),
+										adsCfg.getChannels(), adsCfg.getFps());
+								if (adRawData != null) {
+									List<TsSegment> mixedTsSegs = new ArrayList<TsSegment>();
+									// TODO segment
+									adsSegs.put(md5, mixedTsSegs);
+								}
+
+								break;
+
+							default:
+								continue;
+							}
+
+						} catch (Exception e) {
+							LOGGER.error(e.getMessage());
+						} finally {
+							if (in != null) {
+								try {
+									in.close();
+								} catch (IOException e) {}
 							}
 						}
+					}
 				}
-					
+
 			}
-			
-		}  finally {
-			isLoading.lazySet( false );
+
+		} finally {
+			isLoading.lazySet(false);
 		}
 	}
 	
-	public static List<TsSegment> getAdsTsSegments(String type, float sampleRate, int sampleSizeInBits, int channels, int fps) {
+	public static List<TsSegment> getTsSegments(String type, float sampleRate, int sampleSizeInBits, int channels, int fps) {
 		
 		String md5Key = "";
 		switch (type) {

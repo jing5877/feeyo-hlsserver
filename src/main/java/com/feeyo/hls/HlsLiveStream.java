@@ -182,7 +182,7 @@ public class HlsLiveStream {
         		break;
         	}
     		
-    		List<TsSegment> adTsSegments = AdsMagr.getAdsTsSegments(type, sampleRate, sampleSizeInBits, channels, fps);
+    		List<TsSegment> adTsSegments = AdsMagr.getTsSegments(type, sampleRate, sampleSizeInBits, channels, fps);
     		tsSegment = adTsSegments.get((int)index - 1);
     	} else {
     		tsSegment = tsSegments.get( index );
