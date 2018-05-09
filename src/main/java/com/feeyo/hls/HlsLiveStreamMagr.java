@@ -89,7 +89,7 @@ public class HlsLiveStreamMagr {
 	                    } else {
 	                        
 	                    	// 
-	                    	liveStream.removeExpireClientSessionAndTsSegments(now, SESSION_TIMEOUT_MS );
+	                    	liveStream.removeExpireSessionAndTsSegments(now, SESSION_TIMEOUT_MS );
 	                    }
 	                }
 				}catch(Throwable e) {

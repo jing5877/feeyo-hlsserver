@@ -108,7 +108,7 @@ public class HlsLiveStream {
     
     
     //
-    public void removeExpireClientSessionAndTsSegments(long now, int timeout) {
+    public void removeExpireSessionAndTsSegments(long now, int timeout) {
     	
     	long minTsIndex = -1;
  
@@ -132,6 +132,10 @@ public class HlsLiveStream {
     	
 		
 		// remove expire TS 
+		if ( tsSegments.size() > 24 ) {
+			LOGGER.info(" liveStream id={}, TS SEGMENT is too mach, size={}", streamId,  tsSegments.size() );
+		}
+		
 		for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
 			long tsIndex =  entry.getKey();
 			TsSegment tsSegment = entry.getValue();
@@ -141,6 +145,8 @@ public class HlsLiveStream {
 				LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
 			} 
 		}
+		
+		
     }
     
     // length= 3 ~ 5
