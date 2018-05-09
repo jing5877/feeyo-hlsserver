@@ -25,7 +25,7 @@ public class HlsLiveStreamMagr {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger( HlsLiveStreamMagr.class );
 	
-    private static HlsLiveStreamMagr instance;
+    private static volatile HlsLiveStreamMagr instance;
     
 	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 2;			//
 	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		//
@@ -69,10 +69,13 @@ public class HlsLiveStreamMagr {
 				// expired
 				try {
 	            	long now = System.currentTimeMillis();
-	                for (HlsLiveStream liveStream : streamIdToLiveStreamCache.values()) {
-	                    
-	                	if (now - liveStream.getMtime() > LIVE_STREAM_TIMEOUT_MS) {
-	                       
+	            	
+	            	Iterator<HlsLiveStream> it = streamIdToLiveStreamCache.values().iterator();
+	            	while( it.hasNext() ) {
+	            		
+	            		HlsLiveStream liveStream =  it.next();
+	            		if (now - liveStream.getMtime() > LIVE_STREAM_TIMEOUT_MS) {
+		                       
 	                        //
 	                        long streamId = liveStream.getStreamId();
 	                        streamIdToLiveStreamCache.remove(streamId);
@@ -87,15 +90,15 @@ public class HlsLiveStreamMagr {
 	                        liveStream.close();
 	
 	                    } else {
-	                        
 	                    	// 
 	                    	liveStream.removeExpireSessionAndTsSegments(now, SESSION_TIMEOUT_MS );
 	                    }
-	                }
-				}catch(Throwable e) {
+	            		
+	            	}
+	                
+				} catch(Throwable e) {
 					LOGGER.warn("live stream task err:", e);
 				}
-
               
 			}
     		

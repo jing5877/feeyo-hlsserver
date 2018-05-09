@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang.ArrayUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,17 +125,14 @@ public class HlsLiveStream {
     	
 		
 		// remove expire TS 
-		if ( tsSegments.size() > 24 ) {
-			LOGGER.info(" liveStream id={}, TS SEGMENT is too mach, size={}", streamId,  tsSegments.size() );
-		}
-		
 		for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
 			long tsIndex =  entry.getKey();
 			TsSegment tsSegment = entry.getValue();
 			
 			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout  || (minTsIndex > tsIndex) ) {
 				tsSegments.remove( tsIndex );
-				LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
+				LOGGER.info("remove expire ts segment, tsIndex={},  minTsIndex={},  size={} ", tsIndex, 
+						minTsIndex, tsSegments.size());
 			} 
 		}
 		

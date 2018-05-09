@@ -165,7 +165,7 @@ public class HlsClientSession {
         
         this.mtime = System.currentTimeMillis();
     	
-    	LOGGER.info("rquest filename={} " + ", tsIndexs=" + Arrays.toString( oldTsIndexs )  , filename );
+    	LOGGER.debug("rquest filename={} " + ", tsIndexs=" + Arrays.toString( oldTsIndexs )  , filename );
     	
     	//
     	List<TsSegment> tsSegments = new LinkedList<TsSegment>();
@@ -184,7 +184,7 @@ public class HlsClientSession {
     	m3u8Seq++;
 		m3u8 = m3u8Builder.generateM3u8( isTsModified ? m3u8Seq++ : m3u8Seq, tsSegments);
 		
-        LOGGER.info("response m3u8, {}", m3u8);
+        LOGGER.debug("response m3u8, {}", m3u8);
         
         return m3u8;
     }

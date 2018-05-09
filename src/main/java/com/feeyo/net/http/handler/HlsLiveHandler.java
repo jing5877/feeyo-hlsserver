@@ -92,7 +92,7 @@ public class HlsLiveHandler implements IRequestHandler {
             	 clientSession = liveStream.getClientSessionsById( sessionId.get(0) );
             }
             
-            LOGGER.info("request m3u8 file,  uri={}, clientSession={}", uri, clientSession);
+            LOGGER.debug("request m3u8 file,  uri={}, clientSession={}", uri, clientSession);
             
             // 重定向, 解决标识问题
             if ( clientSession == null  ) {
@@ -103,7 +103,7 @@ public class HlsLiveHandler implements IRequestHandler {
             	StringBuffer url = new StringBuffer(50);
             	url.append( path ).append("?sid=").append( clientSession.getId() );
             	
-            	LOGGER.info("response redirect, url={}", url.toString());
+            	LOGGER.debug("response redirect, url={}", url.toString());
             	
             	HttpResponse response =  HttpUtil.redirectFound( url.toString() );
     			e.getChannel().write(response);
@@ -127,7 +127,7 @@ public class HlsLiveHandler implements IRequestHandler {
         // 1...N.ts
         } else {
         	
-        	LOGGER.info("request ts file, uri={} ", uri);
+        	LOGGER.debug("request ts file, uri={} ", uri);
         	
         	int tsIndex = Integer.valueOf(requestFile.substring(0, requestFile.indexOf(".ts"))).intValue();
         	

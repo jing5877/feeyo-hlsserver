@@ -9,6 +9,7 @@ import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.net.http.HttpServer;
 import com.feeyo.net.udp.UdpServer;
+import com.feeyo.util.Log4jInitializer;
 
 
 
@@ -34,6 +35,10 @@ public class HlsServer {
 			directory = dir.getParent();
 		}
 		
+		// 设置 LOG4J
+		Log4jInitializer.configureAndWatch( directory, "log4j.xml", 30000L);
+		
+		// Ctx
 		HlsCtx.INSTANCE().init( directory );
 		
 

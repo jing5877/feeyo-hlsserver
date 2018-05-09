@@ -9,9 +9,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * 
  * @author zhuam
@@ -19,7 +16,7 @@ import org.slf4j.LoggerFactory;
  */
 public class V5PacketDecoder {
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger( V5PacketDecoder.class );
+	//private static final Logger LOGGER = LoggerFactory.getLogger( V5PacketDecoder.class );
 	
 	private static long TIMEOUT = 10 * 1000;
 	
@@ -128,9 +125,10 @@ public class V5PacketDecoder {
 			throw new V5PacketErrorException("packet crc32 error");
 		}
 		
-		if ( LOGGER.isDebugEnabled() ) {
-			LOGGER.debug( "packet_sender:" + packetSender + ", packet_id:" + packetId + ", packet_length:" + packetLength + ", packet_offset:" + packetOffset);
-		}
+		//if ( LOGGER.isDebugEnabled() ) {
+		//	LOGGER.debug( "packet_sender:" + packetSender + ", packet_id:" + packetId 
+		//				+ ", packet_length:" + packetLength + ", packet_offset:" + packetOffset);
+		//}
 		
 		
 		V5Packet packet = new V5Packet(packetSender, packetType, packetReserved, packetId, packetLength, packetOffset, packetData, crc);

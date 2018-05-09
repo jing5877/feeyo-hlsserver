@@ -177,7 +177,8 @@ public class AdsMagr {
 		}
 	}
 	
-	public static List<TsSegment> getTsSegments(String type, float sampleRate, int sampleSizeInBits, int channels, int fps) {
+	public static List<TsSegment> getTsSegments(String type, 
+			float sampleRate, int sampleSizeInBits, int channels, int fps) {
 		
 		String md5Key = "";
 		switch (type) {
