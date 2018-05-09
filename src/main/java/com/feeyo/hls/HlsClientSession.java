@@ -63,13 +63,6 @@ public class HlsClientSession {
         boolean isTsModified = false;
 
     	/**
-    	 * m3u8 content is following as ads valve is open
-    	 * 
-    	 * 1.ts 2.ts 3.ts
-    	 * 2.ts 3.ts n.ts n+1.ts n+2.ts
-    	 * 3.ts n.ts n+1.ts n+2.ts n+3.ts
-    	 * n.ts n+1.its n+2.ts n+3.ts n+4.ts
-    	 * 
     	 * @see https://tools.ietf.org/html/draft-pantos-http-live-streaming-13#section-6.3.3
     	 */
         
@@ -84,11 +77,12 @@ public class HlsClientSession {
         		
         		long[] newTsIndexs = liveStream.fetchTsIndexs();
         		if ( newTsIndexs != null ) {
-        			int len = Math.min( newTsIndexs.length, 5);
-        			long[] tmpTsIndexs = new long[ len ];
-        			System.arraycopy(newTsIndexs, newTsIndexs.length - len, tmpTsIndexs, 0, len);
+        			int tsNum = Math.min( newTsIndexs.length, 5);
         			
-        			oldTsIndexs = tmpTsIndexs;
+        			long[] tmpIndexs = new long[ tsNum ];
+        			System.arraycopy(newTsIndexs, newTsIndexs.length - tsNum, tmpIndexs, 0, tsNum);
+        			
+        			oldTsIndexs = tmpIndexs;
         		    isTsModified = true;
         		}
         		
@@ -120,36 +114,35 @@ public class HlsClientSession {
         					  2345, 45678  --> 34567
         					 */
         					
-        					// 填充
-        					int paddingLen = Math.min(p1, p2);
+        					// 最小的填充size
+        					int padLength = Math.min(p1, p2);
         					
-        					long[] tmpTsIndexs1 = new long[ oldTsIndexs.length + paddingLen];
-        					System.arraycopy(oldTsIndexs, 0, tmpTsIndexs1, 0, oldTsIndexs.length);
+        					long[] tmpIndexs1 = new long[ oldTsIndexs.length + padLength];
+        					System.arraycopy(oldTsIndexs, 0, tmpIndexs1, 0, oldTsIndexs.length);
         					
         					long tmpOldLastIndex = lastOldIndex;
-        					for(int i = oldTsIndexs.length; i < tmpTsIndexs1.length; i++ ) {
+        					for(int i = oldTsIndexs.length; i < tmpIndexs1.length; i++ ) {
         						tmpOldLastIndex++;
-        						tmpTsIndexs1[i] = tmpOldLastIndex; 
+        						tmpIndexs1[i] = tmpOldLastIndex; 
         					}
         					
         					// 前移
-        					long[] tmpTsIndexs2 = new long[ tmpTsIndexs1.length - 1 ];
-        					System.arraycopy(tmpTsIndexs1, 1, tmpTsIndexs2, 0, tmpTsIndexs1.length - 1);
+        					long[] tmpIndexs2 = new long[ tmpIndexs1.length - 1 ];
+        					System.arraycopy(tmpIndexs1, 1, tmpIndexs2, 0, tmpIndexs1.length - 1);
         					
-        					long lastTmpTsIndex2 = tmpTsIndexs2[tmpTsIndexs2.length-1];
+        					long lastTmpIndex2 = tmpIndexs2[tmpIndexs2.length-1];
         					
         					
         					// 追加最新的 ts index
-        					if ( lastNewIndex > lastTmpTsIndex2 ) {
+        					if ( lastNewIndex > lastTmpIndex2 ) {
+        						long[] tmpIndexs3 = new long[ tmpIndexs1.length ];
+        						System.arraycopy(tmpIndexs2, 0, tmpIndexs3, 0, tmpIndexs2.length);
+        						tmpIndexs3[ tmpIndexs3.length - 1 ] = lastTmpIndex2 + 1;
         						
-        						long[] tmpTsIndexs3 = new long[ tmpTsIndexs1.length ];
-        						System.arraycopy(tmpTsIndexs2, 0, tmpTsIndexs3, 0, tmpTsIndexs2.length);
-        						tmpTsIndexs3[ tmpTsIndexs3.length - 1 ] = lastTmpTsIndex2 + 1;
-        						
-        						oldTsIndexs = tmpTsIndexs3;
+        						oldTsIndexs = tmpIndexs3;
         						
         					} else {
-        						oldTsIndexs = tmpTsIndexs2;
+        						oldTsIndexs = tmpIndexs2;
         					}
         					
         					isTsModified = true;
@@ -158,11 +151,11 @@ public class HlsClientSession {
         			} else {       				
         				//
         				if ( p1 > 0 ) {
-        					long[] tmpTsIndexs = new long[ 5 ];
-        					System.arraycopy(oldTsIndexs, 1, tmpTsIndexs, 0, oldTsIndexs.length - 1);	// 前移
-        					tmpTsIndexs[4] = lastOldIndex + 1;											// 追加
+        					long[] tmpIndexs = new long[ 5 ];
+        					System.arraycopy(oldTsIndexs, 1, tmpIndexs, 0, oldTsIndexs.length - 1);	// 前移
+        					tmpIndexs[4] = lastOldIndex + 1;											// 追加
         					
-        					oldTsIndexs = tmpTsIndexs;
+        					oldTsIndexs = tmpIndexs;
         					isTsModified = true;
         				}
         			}
