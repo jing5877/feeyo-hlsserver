@@ -26,7 +26,7 @@ public class HlsClientSession {
 	
 	private static Logger LOGGER = LoggerFactory.getLogger( HlsClientSession.class );
 	
-    private static final AtomicLong sessionIdGen = new AtomicLong(10000);
+    private static final AtomicLong idGen = new AtomicLong(10000);
     
     private HlsLiveStream liveStream = null;
 
@@ -44,13 +44,12 @@ public class HlsClientSession {
     
     public HlsClientSession(HlsLiveStream liveStream) {
         this.liveStream = liveStream;
-        this.id = String.valueOf( sessionIdGen.incrementAndGet() );
+        this.id = String.valueOf( idGen.incrementAndGet() );
         this.streamId = liveStream.getStreamId();
       
         long now = System.currentTimeMillis();
         this.ctime = now;
-        this.mtime = now;
-        
+        this.mtime = now; 
     }
 
     public long[] getOldTsIndexs() {
@@ -65,9 +64,8 @@ public class HlsClientSession {
     	/**
     	 * @see https://tools.ietf.org/html/draft-pantos-http-live-streaming-13#section-6.3.3
     	 */
-        
-        if ( ctime == mtime && AdsMagr.isHasAds() ) {
-        	
+        boolean isFirst = ctime == mtime;
+        if ( isFirst && AdsMagr.isHasAds() ) {
         	oldTsIndexs = new long[] { 1, 2, 3 };
         	
         } else {
