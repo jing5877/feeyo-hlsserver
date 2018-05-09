@@ -140,12 +140,12 @@ public class HlsVodHandler implements IRequestHandler {
         long timeMillis = System.currentTimeMillis();
 
         DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-        response.headers().add(HttpHeaders.Names.DATE, HttpUtil.getDateString(timeMillis));
-        response.headers().add(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(reqFileName));
-        response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.length);
-        response.headers().add(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(timeMillis));
-        response.headers().add(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(timeMillis + VOD_CACHE_TIME));
-        response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "max-age=" + (VOD_CACHE_TIME/1000));
+        response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(timeMillis));
+        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(reqFileName));
+        response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
+        response.headers().set(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(timeMillis));
+        response.headers().set(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(timeMillis + VOD_CACHE_TIME));
+        response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age=" + (VOD_CACHE_TIME/1000));
 
         response.setContent(ChannelBuffers.copiedBuffer(content));
 

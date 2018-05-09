@@ -42,6 +42,8 @@ public class HlsLiveHandler implements IRequestHandler {
     
     private static final String LIVE_M3U8 = "live.m3u8";
     private static final int LIVE_CACHE_TIME = 1000 * 30;
+    
+    private static final byte[] TS_LACKOFNUM = "ts segment lack of numbers".getBytes();
 
     @Override
     public Type getType() {
@@ -97,8 +99,16 @@ public class HlsLiveHandler implements IRequestHandler {
             // 重定向, 解决标识问题
             if ( clientSession == null  ) {
             	
-            	
+            	// TS 数量不足
             	clientSession = liveStream.newClientSession();		
+            	if ( clientSession == null ) {
+            		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+            		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, TS_LACKOFNUM.length);
+            		response.setContent(ChannelBuffers.copiedBuffer(TS_LACKOFNUM));
+            	    e.getChannel().write(response); 
+            	    
+            		return;
+            	}
                  
             	StringBuffer url = new StringBuffer(50);
             	url.append( path ).append("?sid=").append( clientSession.getId() );
@@ -116,11 +126,11 @@ public class HlsLiveHandler implements IRequestHandler {
             byte[] content = m3u8.getBuf();
             long fileMTime = m3u8.getTime();
 
-            response.headers().add(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
-            response.headers().add(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
-            response.headers().add(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
-            response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.length);
-            response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=5");	//
+            response.headers().set(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
+            response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
+            response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
+            response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
+            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=5");	//
             response.setContent(ChannelBuffers.copiedBuffer(content));
             e.getChannel().write(response);
         	
@@ -142,7 +152,7 @@ public class HlsLiveHandler implements IRequestHandler {
              	int fileMTimeSec = tsSegment != null ? (int) ( tsSegment.getCtime() / 1000L) : 0;
                 if (mdateSec == fileMTimeSec) {
                     HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
-                    response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "max-age=1");
+                    response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age=1");
                     HttpUtil.sendNotModified(ctx, response);
                     return;
                 }
@@ -158,13 +168,13 @@ public class HlsLiveHandler implements IRequestHandler {
             byte[] content = tsSegment.getData();
             long fileMTime = tsSegment.getCtime();
 
-            response.headers().add(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
-            response.headers().add(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
-            response.headers().add(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
-            response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.length);
-            response.headers().add(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(fileMTime));
-            response.headers().add(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(fileMTime + LIVE_CACHE_TIME));	// 相对当前的过期时间，以分钟为单位
-            response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "max-age="+( LIVE_CACHE_TIME / 1000));
+            response.headers().set(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
+            response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
+            response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
+            response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
+            response.headers().set(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(fileMTime));
+            response.headers().set(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(fileMTime + LIVE_CACHE_TIME));	// 相对当前的过期时间，以分钟为单位
+            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age="+( LIVE_CACHE_TIME / 1000));
             
             response.setContent(ChannelBuffers.copiedBuffer(content));
             e.getChannel().write(response);

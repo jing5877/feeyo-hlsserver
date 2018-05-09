@@ -214,7 +214,6 @@ public class HlsClientSession {
     	
     	StringBuffer sb = new StringBuffer(80);
 		sb.append("id=").append( id ).append(", ");
-		sb.append("streamId=").append( streamId ).append(", ");
 		sb.append("ctime=").append( ctime ).append(", ");
 		sb.append("mtime=").append( mtime );
 		return sb.toString();

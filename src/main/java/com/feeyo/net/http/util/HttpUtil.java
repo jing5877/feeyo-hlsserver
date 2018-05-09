@@ -53,8 +53,8 @@ public class HttpUtil {
     
     private static final HttpResponse redirect(HttpResponseStatus status, String url) {
     	 HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
-         HttpHeaders.setHeader(response, HttpHeaders.Names.LOCATION, url);
-         HttpHeaders.setHeader(response, HttpHeaders.Names.CONTENT_LENGTH, 0);
+    	 response.headers().set(HttpHeaders.Names.LOCATION, url);
+    	 response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, 0);
          return response;
     }
     

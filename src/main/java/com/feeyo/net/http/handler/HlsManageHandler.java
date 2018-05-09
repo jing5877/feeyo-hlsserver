@@ -137,8 +137,8 @@ public class HlsManageHandler implements IRequestHandler {
 		
 		//
 		DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-		response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, reponseTxt.length());
-		response.headers().add(HttpHeaders.Names.CONTENT_TYPE, "text/plain;charset=UTF-8"); 
+		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, reponseTxt.length());
+		response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain;charset=UTF-8"); 
 		 
 		ChannelBuffer buffer = ChannelBuffers.copiedBuffer(reponseTxt, Charset.defaultCharset());
 		response.setContent(buffer);
