@@ -59,16 +59,8 @@ public class HlsLiveStream {
     
     //
     private Map<Long, TsSegment> tsSegments = new ConcurrentHashMap<Long, TsSegment>(); 		
-    private AtomicLong tsIndexGen = new AtomicLong(4);										// 4...
-    
-    // ADS
-    private static AdsMagr adsMagr;															// 1,2,3
-    
-    static {
-    	if (adsMagr == null)
-            adsMagr = new AdsMagr();
-    }
-    
+    private AtomicLong tsIndexGen = new AtomicLong(4);										//  ads 1,2,3   normal 4...  
+
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
     		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
         
@@ -190,7 +182,7 @@ public class HlsLiveStream {
         		break;
         	}
     		
-    		List<TsSegment> adTsSegments = adsMagr.getAdsTsSegments(type, sampleRate, sampleSizeInBits, channels, fps);
+    		List<TsSegment> adTsSegments = AdsMagr.getAdsTsSegments(type, sampleRate, sampleSizeInBits, channels, fps);
     		tsSegment = adTsSegments.get((int)index - 1);
     	} else {
     		tsSegment = tsSegments.get( index );
