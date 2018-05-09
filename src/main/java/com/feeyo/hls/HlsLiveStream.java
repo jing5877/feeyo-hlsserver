@@ -112,12 +112,10 @@ public class HlsLiveStream {
     	
     	long minTsIndex = -1;
  
-		for (String sessionId : clientSessions.keySet()) {
-			
-			HlsClientSession clientSession = clientSessions.get(sessionId);
+		for (HlsClientSession session : clientSessions.values()) {
 			
 			// get min TS Index
-			long[] tsIndexs = clientSession.getOldTsIndexs();
+			long[] tsIndexs = session.getOldTsIndexs();
 			if ( tsIndexs != null ) {
 				long tmpTsIndex = Longs.min(tsIndexs);
 				if ( minTsIndex == -1 || minTsIndex > tmpTsIndex )  {
@@ -126,9 +124,9 @@ public class HlsLiveStream {
 			}
 			
 			// remove expire session
-			if (now - clientSession.getMtime() > timeout) {
-				clientSessions.remove(sessionId);
-				LOGGER.info("remove hls client: " + clientSession.toString() + " left: " + clientSessions.size());
+			if (now - session.getMtime() > timeout) {
+				clientSessions.remove( session.getId() );
+				LOGGER.info("remove hls client: " + session.toString() + " left: " + clientSessions.size());
 			}
 		}
     	
