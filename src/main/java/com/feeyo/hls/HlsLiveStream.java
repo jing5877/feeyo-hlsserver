@@ -119,7 +119,7 @@ public class HlsLiveStream {
 			// remove expire session
 			if (now - session.getMtime() > timeout) {
 				clientSessions.remove( session.getId() );
-				LOGGER.info("remove hls client: " + session.toString() + " left: " + clientSessions.size());
+				LOGGER.info("##streamId={}, remove session: " + session.toString() + " left: " + clientSessions.size());
 			}
 		}
     	
@@ -131,7 +131,7 @@ public class HlsLiveStream {
 			
 			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout  || (minTsIndex > tsIndex) ) {
 				tsSegments.remove( tsIndex );
-				LOGGER.info("remove expire ts segment, tsIndex={},  minTsIndex={},  size={} ", tsIndex, 
+				LOGGER.info("##streamId={}, remove expire ts, tsIndex={},  minTsIndex={},  size={} ", streamId, tsIndex, 
 						minTsIndex, tsSegments.size());
 			} 
 		}
@@ -199,7 +199,7 @@ public class HlsLiveStream {
         HlsClientSession clientSession = new HlsClientSession(this);
         clientSessions.put(clientSession.getId(), clientSession);
         
-        LOGGER.info("add client: " + clientSession.toString());
+        LOGGER.info("##streamId={},  add client:{} ", streamId, clientSession);
         return clientSession;
     }
     
@@ -272,7 +272,7 @@ public class HlsLiveStream {
 	            TsSegment tsSegment = new TsSegment(  tsIndex +".ts", tsData, tsSegmenter.getTsSegTime(), false);
 	            tsSegments.put(tsIndex, tsSegment);
 	            
-	            LOGGER.info("add ts {} ", tsSegment);
+	            LOGGER.info("##streamId={},  add ts {} ", streamId, tsSegment);
 	        }
     	}
     }
