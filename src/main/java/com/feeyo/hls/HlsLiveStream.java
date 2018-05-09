@@ -134,12 +134,12 @@ public class HlsLiveStream {
 		
 		// remove expire TS 
 		for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
-			long idx =  entry.getKey();
+			long tsIndex =  entry.getKey();
 			TsSegment tsSegment = entry.getValue();
 			
 			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout 
-					|| (minTsIndex > idx) ) {
-				tsSegments.remove( idx );
+					|| (minTsIndex > tsIndex) ) {
+				tsSegments.remove( tsIndex );
 				LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
 				
 			} 
@@ -148,27 +148,25 @@ public class HlsLiveStream {
     
     // length= 3 ~ 5
     public long[] fetchTsIndexs() {
-    
     	// 
     	Set<Long> indexSET = tsSegments.keySet();
     	if ( indexSET.size() < 3 ) {
     		return null;
-    	}
+    	}	
     	
     	//
-    	Long[] indexs = indexSET.toArray(new Long[indexSET.size()]);
-    	Arrays.sort( indexs );
+    	Long[] indexArr = indexSET.toArray(new Long[indexSET.size()]);
+    	Arrays.sort( indexArr );
     	
-    	if ( indexs.length > 5 ) {
-    		Long[] tmpIndexs = new Long[5];
-    		System.arraycopy(indexs, indexs.length - 5, tmpIndexs, 0, 5);
+    	if ( indexArr.length > 5 ) {
+    		Long[] tmpArr = new Long[5];
+    		System.arraycopy(indexArr, indexArr.length - 5, tmpArr, 0, 5);
     		
-    		return  ArrayUtils.toPrimitive( tmpIndexs );
+    		return ArrayUtils.toPrimitive( tmpArr );
     		
     	} else {
-    		return ArrayUtils.toPrimitive( indexs );
+    		return ArrayUtils.toPrimitive( indexArr );
     	}
- 
     }
     
     public TsSegment fetchTsSegmentByIndex(long index) {
