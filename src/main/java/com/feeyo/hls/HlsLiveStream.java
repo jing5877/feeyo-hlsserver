@@ -108,21 +108,15 @@ public class HlsLiveStream {
     
     
     //
-    public void removeTimeoutClientSessionAndTsSegments(long now, int timeout) {
+    public void removeExpireClientSessionAndTsSegments(long now, int timeout) {
     	
-    	// remove timeout client session
-		for (String sessionId : clientSessions.keySet()) {
-			HlsClientSession clientSession = clientSessions.get(sessionId);
-			if (now - clientSession.getMtime() > timeout) {
-				clientSessions.remove(sessionId);
-				LOGGER.info("remove hls client: " + clientSession.toString() + " left: " + clientSessions.size());
-			}
-		}
-    	
-    	// get min TS Index
     	long minTsIndex = -1;
-		
-		for(HlsClientSession clientSession : clientSessions.values()) {
+ 
+		for (String sessionId : clientSessions.keySet()) {
+			
+			HlsClientSession clientSession = clientSessions.get(sessionId);
+			
+			// get min TS Index
 			long[] tsIndexs = clientSession.getOldTsIndexs();
 			if ( tsIndexs != null ) {
 				long tmpTsIndex = Longs.min(tsIndexs);
@@ -130,18 +124,23 @@ public class HlsLiveStream {
 					minTsIndex = tmpTsIndex;
 				} 
 			}
+			
+			// remove expire session
+			if (now - clientSession.getMtime() > timeout) {
+				clientSessions.remove(sessionId);
+				LOGGER.info("remove hls client: " + clientSession.toString() + " left: " + clientSessions.size());
+			}
 		}
+    	
 		
 		// remove expire TS 
 		for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
 			long tsIndex =  entry.getKey();
 			TsSegment tsSegment = entry.getValue();
 			
-			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout 
-					|| (minTsIndex > tsIndex) ) {
+			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout  || (minTsIndex > tsIndex) ) {
 				tsSegments.remove( tsIndex );
 				LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
-				
 			} 
 		}
     }
