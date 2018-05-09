@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -59,8 +56,6 @@ public class HlsLiveStream {
 
     //
     private AbstractTsSegmenter tsSegmenter = null;
-
-    private ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
     
     //
     private Map<Long, TsSegment> tsSegments = new ConcurrentHashMap<Long, TsSegment>(); 		
@@ -111,47 +106,50 @@ public class HlsLiveStream {
     	}
         
         tsSegmenter.initialize(sampleRate, sampleSizeInBits, channels, fps);
-
-        //
-        scheduledExecutor.scheduleAtFixedRate(new Runnable() {
-
-			@Override
-			public void run() {
-				
-				long minTsIndex = -1;
-				
-				for(HlsClientSession clientSession : clientSessions.values()) {
-					long[] tsIndexs = clientSession.getTsIndexs();
-					if ( tsIndexs != null ) {
-						long tmpTsIndex = Longs.min(tsIndexs);
-						if ( minTsIndex == -1 || minTsIndex > tmpTsIndex )  {
-							minTsIndex = tmpTsIndex;
-						} 
-					}
-				}
-
-				// delete
-				if ( minTsIndex - 1 > 3 || minTsIndex == -1 ) {
-					for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
-						long idx =  entry.getKey();
-						TsSegment tsSegment = entry.getValue();
-						if ( (idx < minTsIndex || minTsIndex == -1) && ( System.currentTimeMillis() - tsSegment.getLasttime() > 30 * 1000 ) ) {
-							tsSegments.remove( idx );
-							
-							LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
-						}
-					}
-				}
-			}
-    		
-    	}, 10, 10, TimeUnit.SECONDS);
     }
     
     
+    //
+    public void removeTimeoutSessionAndTsSegments(long now, int timeout) {
+    	
+    	// remove timeout client session
+		for (String sessionId : clientSessions.keySet()) {
+			HlsClientSession clientSession = clientSessions.get(sessionId);
+			if (now - clientSession.getMtime() > timeout) {
+				clientSessions.remove(sessionId);
+				LOGGER.info("remove hls client: " + clientSession.toString() + " left: " + clientSessions.size());
+			}
+		}
+    	
+    	// get min TS Index
+    	long minTsIndex = -1;
+		
+		for(HlsClientSession clientSession : clientSessions.values()) {
+			long[] tsIndexs = clientSession.getOldTsIndexs();
+			if ( tsIndexs != null ) {
+				long tmpTsIndex = Longs.min(tsIndexs);
+				if ( minTsIndex == -1 || minTsIndex > tmpTsIndex )  {
+					minTsIndex = tmpTsIndex;
+				} 
+			}
+		}
+		
+		// remove expire TS 
+		for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
+			long idx =  entry.getKey();
+			TsSegment tsSegment = entry.getValue();
+			
+			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout 
+					|| (minTsIndex > idx) ) {
+				tsSegments.remove( idx );
+				LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
+				
+			} 
+		}
+    }
+    
     // length= 3 ~ 5
     public long[] fetchTsIndexs() {
-    	
-    	//List<TsSegment> adTsSegments = hlsAdsWatchdog.getAdsTsSegments();
     	
     	if ( tsSegmentIndexs.size() < 3)  {
     		return null;
@@ -168,7 +166,7 @@ public class HlsLiveStream {
     	}
     }
     
-    public TsSegment fetchTsSegment(long index) {
+    public TsSegment fetchTsSegmentByIndex(long index) {
     	if ( index < 0 )
     		return null;
     	
@@ -207,16 +205,6 @@ public class HlsLiveStream {
         
         LOGGER.info("add client: " + clientSession.toString());
         return clientSession;
-    }
-    
-    
-    public void removeClientSessionById(String sessionId) {
-    	
-        HlsClientSession clientSession = clientSessions.remove(sessionId);
-        if ( clientSession != null ) {
-        	
-        	LOGGER.info("remove hls client: " + clientSession.toString() + " left: " + clientSessions.size());
-        }
     }
     
     public HlsClientSession getClientSessionsById(String id) {

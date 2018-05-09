@@ -40,7 +40,7 @@ public class HlsClientSession {
     private M3U8 m3u8 = null;
     private M3u8Builder m3u8Builder = new M3u8Builder( AacTranscodingTsSegmenter.TS_DURATION );
     
-    private volatile long[] tsIndexs = null;		// m3u8 内对应的 TS列表
+    private volatile long[] oldTsIndexs = null;		// m3u8 内对应的 TS列表
     
     public HlsClientSession(HlsLiveStream liveStream) {
         this.liveStream = liveStream;
@@ -53,8 +53,8 @@ public class HlsClientSession {
         
     }
 
-    public long[] getTsIndexs() {
-		return tsIndexs;
+    public long[] getOldTsIndexs() {
+		return oldTsIndexs;
 	}
     
 
@@ -74,59 +74,113 @@ public class HlsClientSession {
     	 */
         
         if ( ctime == mtime && AdsMagr.isHasAds() ) {
-        	tsIndexs = new long[] { 1, 2, 3 };
+        	
+        	oldTsIndexs = new long[] { 1, 2, 3 };
         	
         } else {
         	
-        	long[] newTsIndexs = liveStream.fetchTsIndexs();
-        	
-        	if (tsIndexs != null && tsIndexs[0] < 4) {
-    			
-				if ( newTsIndexs != null && tsIndexs[tsIndexs.length - 1] < newTsIndexs[newTsIndexs.length - 1]) {
-        			for(int i =0; i< tsIndexs.length -1; i++) {
-        				tsIndexs[i] = tsIndexs[i+1];
-        			}
+        	// 无嵌入式广告
+        	if ( oldTsIndexs == null ) {
+        		
+        		long[] newTsIndexs = liveStream.fetchTsIndexs();
+        		if ( newTsIndexs != null ) {
+        			int len = Math.min( newTsIndexs.length, 5);
+        			long[] tmpTsIndexs = new long[ len ];
+        			System.arraycopy(newTsIndexs, newTsIndexs.length - len, tmpTsIndexs, 0, len);
         			
-        			if(tsIndexs.length < 5) {
-        				tsIndexs = Arrays.copyOf(tsIndexs, 5);
-        				tsIndexs[2] = newTsIndexs[newTsIndexs.length-3];
-        				tsIndexs[3] = newTsIndexs[newTsIndexs.length-2];
-        				tsIndexs[4] = newTsIndexs[newTsIndexs.length-1];
-        			}
-        			
-        			tsIndexs[tsIndexs.length - 1] = newTsIndexs[newTsIndexs.length - 1];
-        			
-    				isTsModified = true;
+        			oldTsIndexs = tmpTsIndexs;
+        		    isTsModified = true;
         		}
         		
-			} else if ( tsIndexs == null && newTsIndexs != null) {
-        		tsIndexs = newTsIndexs;
-        		isTsModified = true;
+        	} else {
         		
-        	} else if ( tsIndexs != null && newTsIndexs != null ) {
-        		
-        		if ( tsIndexs[tsIndexs.length - 1] < newTsIndexs[newTsIndexs.length - 1] ) {
-        			// 后往前移
-        			for(int i =0; i< tsIndexs.length -1; i++) {
-        				tsIndexs[i] = tsIndexs[i+1];
-        			}
+        		//
+        		long[] newTsIndexs = liveStream.fetchTsIndexs();
+        		if ( newTsIndexs != null ) {
+
+        			long lastOldIndex = oldTsIndexs[oldTsIndexs.length - 1];
+        			long lastNewIndex = newTsIndexs[newTsIndexs.length - 1];
         			
-        			tsIndexs[tsIndexs.length - 1] = tsIndexs[tsIndexs.length - 2] + 1;
-    				isTsModified = true;
-    			}
+        			int p1 = (int) ( lastNewIndex - lastOldIndex );
+        			int p2 = ( 5 - oldTsIndexs.length );
+        		
+        			// 空间长度不足5
+        			if ( p2 > 0 ) {
+        				
+        				// 存在新的 ts
+        				if ( p1 > 0 ) {
+        					
+        					/*
+        					  123,  4      --> 234
+        					  123,  45     --> 2345
+        					  123,  456    --> 23456
+        					  123,  4567   --> 23456 
+        					  
+        					  234,  4567   --> 34567
+        					  2345, 45678  --> 34567
+        					 */
+        					
+        					// 填充
+        					int paddingLen = Math.min(p1, p2);
+        					
+        					long[] tmpTsIndexs1 = new long[ oldTsIndexs.length + paddingLen];
+        					System.arraycopy(oldTsIndexs, 0, tmpTsIndexs1, 0, oldTsIndexs.length);
+        					
+        					long tmpOldLastIndex = lastOldIndex;
+        					for(int i = oldTsIndexs.length; i < tmpTsIndexs1.length; i++ ) {
+        						tmpOldLastIndex++;
+        						tmpTsIndexs1[i] = tmpOldLastIndex; 
+        					}
+        					
+        					// 前移
+        					long[] tmpTsIndexs2 = new long[ tmpTsIndexs1.length - 1 ];
+        					System.arraycopy(tmpTsIndexs1, 1, tmpTsIndexs2, 0, tmpTsIndexs1.length - 1);
+        					
+        					long lastTmpTsIndex2 = tmpTsIndexs2[tmpTsIndexs2.length-1];
+        					
+        					
+        					// 追加最新的 ts index
+        					if ( lastNewIndex > lastTmpTsIndex2 ) {
+        						
+        						long[] tmpTsIndexs3 = new long[ tmpTsIndexs1.length ];
+        						System.arraycopy(tmpTsIndexs2, 0, tmpTsIndexs3, 0, tmpTsIndexs2.length);
+        						tmpTsIndexs3[ tmpTsIndexs3.length - 1 ] = lastTmpTsIndex2 + 1;
+        						
+        						oldTsIndexs = tmpTsIndexs3;
+        						
+        					} else {
+        						oldTsIndexs = tmpTsIndexs2;
+        					}
+        					
+        					isTsModified = true;
+        				}
+  
+        			} else {       				
+        				//
+        				if ( p1 > 0 ) {
+        					long[] tmpTsIndexs = new long[ 5 ];
+        					System.arraycopy(oldTsIndexs, 1, tmpTsIndexs, 0, oldTsIndexs.length - 1);	// 前移
+        					tmpTsIndexs[4] = lastOldIndex + 1;											// 追加
+        					
+        					oldTsIndexs = tmpTsIndexs;
+        					isTsModified = true;
+        				}
+        			}
+        			        			
+        		}
         	}
         	
         }
         
         this.mtime = System.currentTimeMillis();
     	
-    	LOGGER.info("rquest filename={} " + ", tsIndexs=" + Arrays.toString( tsIndexs )  , filename );
+    	LOGGER.info("rquest filename={} " + ", tsIndexs=" + Arrays.toString( oldTsIndexs )  , filename );
     	
     	//
     	List<TsSegment> tsSegments = new LinkedList<TsSegment>();
-    	if ( tsIndexs != null ) {
-    		for(long tsIndex: tsIndexs) {
-    			TsSegment tsSegment = liveStream.fetchTsSegment(tsIndex);
+    	if ( oldTsIndexs != null ) {
+    		for(long tsIndex: oldTsIndexs) {
+    			TsSegment tsSegment = liveStream.fetchTsSegmentByIndex(tsIndex);
     			if ( tsSegment != null ) {
     				if ( tsSegment.isAds() )
     					 tsSegment.setDiscontinue(true);

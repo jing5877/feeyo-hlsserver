@@ -138,7 +138,7 @@ public class HlsLiveHandler implements IRequestHandler {
                 Date mdate = dateFormatter.parse(ifModifiedSince);
                 int mdateSec = (int)(mdate.getTime()/1000L);
 
-             	TsSegment tsSegment = liveStream.fetchTsSegment( tsIndex );
+             	TsSegment tsSegment = liveStream.fetchTsSegmentByIndex( tsIndex );
              	int fileMTimeSec = tsSegment != null ? (int) ( tsSegment.getCtime() / 1000L) : 0;
                 if (mdateSec == fileMTimeSec) {
                     HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
@@ -148,7 +148,7 @@ public class HlsLiveHandler implements IRequestHandler {
                 }
             }
             
-            TsSegment tsSegment = liveStream.fetchTsSegment( tsIndex );
+            TsSegment tsSegment = liveStream.fetchTsSegmentByIndex( tsIndex );
             if ( tsSegment == null ) {
             	HttpUtil.sendError(ctx,HttpResponseStatus.NOT_FOUND);
             	return;

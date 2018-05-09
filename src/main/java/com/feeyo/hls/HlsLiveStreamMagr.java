@@ -77,13 +77,9 @@ public class HlsLiveStreamMagr {
                         expiredStreamIds.add(hlsLiveStream.getStreamId());
                         
                     } else {
-                        Map<String, HlsClientSession> clientSessions = hlsLiveStream.getAllClientSession();
-                        for (String sessionId : clientSessions.keySet()) {
-                            HlsClientSession clientSession = clientSessions.get(sessionId);
-                            if ( now - clientSession.getMtime() > SESSION_TIMEOUT_MS ) {
-                                hlsLiveStream.removeClientSessionById(sessionId);
-                            }
-                        }
+                        
+                    	// 
+                    	hlsLiveStream.removeTimeoutSessionAndTsSegments(now, SESSION_TIMEOUT_MS );
                     }
                 }
 
