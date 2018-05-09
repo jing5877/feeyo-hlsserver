@@ -160,6 +160,7 @@ public class HlsLiveHandler implements IRequestHandler {
             
             TsSegment tsSegment = liveStream.fetchTsSegmentByIndex( tsIndex );
             if ( tsSegment == null ) {
+            	LOGGER.warn("##streamId={},  get ts, but not found, tsIndex={}", liveStream.getStreamId(), tsIndex);
             	HttpUtil.sendError(ctx,HttpResponseStatus.NOT_FOUND);
             	return;
             }
