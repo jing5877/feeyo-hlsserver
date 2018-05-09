@@ -119,7 +119,7 @@ public class HlsLiveStream {
 			// remove expire session
 			if (now - session.getMtime() > timeout) {
 				clientSessions.remove( session.getId() );
-				LOGGER.info("##streamId={}, remove session: " + session.toString() + " left: " + clientSessions.size());
+				LOGGER.info("##streamId={}, remove session: {}, size={} ", session, clientSessions.size());
 			}
 		}
     	
@@ -131,8 +131,8 @@ public class HlsLiveStream {
 			
 			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout  || (minTsIndex > tsIndex) ) {
 				tsSegments.remove( tsIndex );
-				LOGGER.info("##streamId={}, remove expire ts, tsIndex={},  minTsIndex={},  size={} ", streamId, tsIndex, 
-						minTsIndex, tsSegments.size());
+				LOGGER.info("##streamId={}, remove expire ts, tsIndex={},  minTsIndex={},  cache ts size={} ", 
+						streamId, tsIndex,  minTsIndex, tsSegments.size());
 			} 
 		}
 		
