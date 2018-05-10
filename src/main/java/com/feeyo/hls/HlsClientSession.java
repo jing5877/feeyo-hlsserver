@@ -94,14 +94,14 @@ public class HlsClientSession {
         			long lastOldIndex = oldTsIndexs[oldTsIndexs.length - 1];
         			long lastNewIndex = newTsIndexs[newTsIndexs.length - 1];
         			
-        			int p1 = (int) ( lastNewIndex - lastOldIndex );
-        			int p2 = ( 5 - oldTsIndexs.length );
+        			int newIncreaseNum = (int) ( lastNewIndex - lastOldIndex );
+        			int oldRemainingNum = ( 5 - oldTsIndexs.length );
         		
-        			// 空间长度不足5
-        			if ( p2 > 0 ) {
+        			// 当前 Session 不足5个TS
+        			if ( oldRemainingNum > 0 ) {
         				
-        				// 存在新的 ts
-        				if ( p1 > 0 ) {
+        				// LiveStream 存在新的TS
+        				if ( newIncreaseNum > 0 ) {
         					
         					 /*
         					  123,  4      --> 234
@@ -113,10 +113,9 @@ public class HlsClientSession {
         					  2345, 45678  --> 34567
         					 */
         					
-        					// 最小的填充size
-        					int padLength = Math.min(p1, p2);
+        					int fillNum = Math.min(newIncreaseNum, oldRemainingNum);			// 最小的填充
         					
-        					long[] tmpIndexs1 = new long[ oldTsIndexs.length + padLength];
+        					long[] tmpIndexs1 = new long[ oldTsIndexs.length + fillNum];
         					System.arraycopy(oldTsIndexs, 0, tmpIndexs1, 0, oldTsIndexs.length);
         					
         					long tmpOldLastIndex = lastOldIndex;
@@ -149,7 +148,7 @@ public class HlsClientSession {
   
         			} else {       				
         				//
-        				if ( p1 > 0 ) {
+        				if ( newIncreaseNum > 0 ) {
         					long[] tmpIndexs = new long[ 5 ];
         					System.arraycopy(oldTsIndexs, 1, tmpIndexs, 0, oldTsIndexs.length - 1);	// 前移
         					tmpIndexs[4] = lastOldIndex + 1;											// 追加

@@ -175,7 +175,7 @@ public class HlsLiveHandler implements IRequestHandler {
               HTTP CACHE
               1、Last-Modified
               2、Expires
-              3、Cache-Control
+              3、Cache-Control ，
              */
             response.headers().set(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
             response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
