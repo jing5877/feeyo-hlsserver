@@ -44,7 +44,7 @@ public class HlsLiveHandler implements IRequestHandler {
     
     private static final int TS_HTTP_CACHE_TIME_MS = 1000 * 60 * 2;		//
     
-    private static final byte[] TS_LACKOFNUM = "ts segment lack of numbers".getBytes();
+    private static final byte[] TS_PREPARING = "ts segment preparing ...".getBytes();
 
     @Override
     public Type getType() {
@@ -104,10 +104,9 @@ public class HlsLiveHandler implements IRequestHandler {
             	clientSession = liveStream.newClientSession();		
             	if ( clientSession == null ) {
             		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-            		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, TS_LACKOFNUM.length);
-            		response.setContent(ChannelBuffers.copiedBuffer(TS_LACKOFNUM));
+            		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, TS_PREPARING.length);
+            		response.setContent(ChannelBuffers.copiedBuffer(TS_PREPARING));
             	    e.getChannel().write(response); 
-            	    
             		return;
             	}
                  
