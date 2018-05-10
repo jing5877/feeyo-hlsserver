@@ -132,7 +132,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 			FrameData frameData =  new FrameData();
 			frameData.buf = rawData;
 			frameData.pts = pts;
-			frameData.dts = pts;
+			frameData.dts = 0;
 			frameData.isAudio = true;
 			return frameData;
         }	
