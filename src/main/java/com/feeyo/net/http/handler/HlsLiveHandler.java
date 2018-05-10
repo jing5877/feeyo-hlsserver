@@ -41,7 +41,8 @@ public class HlsLiveHandler implements IRequestHandler {
 	private static Logger LOGGER = LoggerFactory.getLogger( HlsLiveHandler.class );
     
     private static final String LIVE_M3U8 = "live.m3u8";
-    private static final int LIVE_CACHE_TIME = 1000 * 30;
+    
+    private static final int TS_HTTP_CACHE_TIME_MS = 1000 * 60 * 2;		//
     
     private static final byte[] TS_LACKOFNUM = "ts segment lack of numbers".getBytes();
 
@@ -141,7 +142,7 @@ public class HlsLiveHandler implements IRequestHandler {
         	
         	int tsIndex = Integer.valueOf(requestFile.substring(0, requestFile.indexOf(".ts"))).intValue();
         	
-        	// 
+        	// Check the browser cache time
         	String ifModifiedSince = request.headers().get( HttpHeaders.Names.IF_MODIFIED_SINCE );
             if ( ifModifiedSince != null && !ifModifiedSince.isEmpty() ) {
                 SimpleDateFormat dateFormatter = new SimpleDateFormat(HttpUtil.HTTP_DATE_FORMAT, Locale.US);
@@ -165,6 +166,7 @@ public class HlsLiveHandler implements IRequestHandler {
             	return;
             }
             
+            //
          	DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
             byte[] content = tsSegment.getData();
             long fileMTime = tsSegment.getCtime();
@@ -174,8 +176,8 @@ public class HlsLiveHandler implements IRequestHandler {
             response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
             response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
             response.headers().set(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(fileMTime));
-            response.headers().set(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(fileMTime + LIVE_CACHE_TIME));	// 相对当前的过期时间，以分钟为单位
-            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age="+( LIVE_CACHE_TIME / 1000));
+            response.headers().set(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(fileMTime + TS_HTTP_CACHE_TIME_MS));	// 相对当前的过期时间，以分钟为单位
+            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age="+( TS_HTTP_CACHE_TIME_MS / 1000));			// 秒
             
             response.setContent(ChannelBuffers.copiedBuffer(content));
             e.getChannel().write(response);

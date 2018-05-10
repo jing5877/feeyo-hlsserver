@@ -24,7 +24,7 @@ public class AacEncoderPool {
 
     public AacEncoder borrow(float sampleRate, int sampleSizeInBits, int channels, boolean createWhenEmpty) {
     	
-    	LOGGER.debug("AacEncoderPool current size: "+ encoders.size()+" / " + encoderNum.get());
+    	LOGGER.info("AacEncoderPool current size: "+ encoders.size()+" / " + encoderNum.get());
         
     	AacEncoder encoder = encoders.poll();
     	if ( encoder == null && createWhenEmpty ) {

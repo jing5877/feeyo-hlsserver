@@ -18,7 +18,7 @@ import com.feeyo.net.udp.packet.V5Packet;
 import com.feeyo.net.udp.packet.V5PacketType;
 
 /**
- * HLS LIVE Stream 管理
+ * HLS LIVE Stream MANAGE
  *
  */
 public class HlsLiveStreamMagr {
@@ -27,8 +27,7 @@ public class HlsLiveStreamMagr {
 	
     private static volatile HlsLiveStreamMagr instance;
     
-	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 2;			//
-	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		//
+	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		// ten minute
 	
     private static ExecutorService executor = Executors.newFixedThreadPool(10);
     private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(3);
@@ -68,7 +67,8 @@ public class HlsLiveStreamMagr {
 				
 				// expired
 				try {
-	            	long now = System.currentTimeMillis();
+	            	
+					long now = System.currentTimeMillis();
 	            	
 	            	Iterator<HlsLiveStream> it = streamIdToLiveStreamCache.values().iterator();
 	            	while( it.hasNext() ) {
@@ -91,7 +91,7 @@ public class HlsLiveStreamMagr {
 	
 	                    } else {
 	                    	// 
-	                    	liveStream.removeExpireSessionAndTsSegments(now, SESSION_TIMEOUT_MS );
+	                    	liveStream.removeExpireSessionAndTsSegments();
 	                    }
 	            		
 	            	}

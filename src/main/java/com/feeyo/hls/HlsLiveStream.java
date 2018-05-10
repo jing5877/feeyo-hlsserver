@@ -20,7 +20,6 @@ import com.feeyo.hls.ts.segmenter.AacTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AbstractTsSegmenter;
 import com.feeyo.hls.ts.segmenter.H264TranscodingTsSegmenter;
 import com.feeyo.hls.ts.segmenter.H264TsSegmenter;
-import com.google.common.primitives.Longs;
 
 
 /**
@@ -35,6 +34,9 @@ import com.google.common.primitives.Longs;
 public class HlsLiveStream {
 	
 	private static Logger LOGGER = LoggerFactory.getLogger( HlsLiveStream.class );
+	
+	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 2;			
+	private static final int TS_TIMEOUT_MS = SESSION_TIMEOUT_MS;			
     
     // id -> client session
     private Map<String, HlsClientSession> clientSessions = new ConcurrentHashMap<String, HlsClientSession>();
@@ -101,42 +103,29 @@ public class HlsLiveStream {
     
     
     //
-    public void removeExpireSessionAndTsSegments(long now, int timeout) {
+    public void removeExpireSessionAndTsSegments() {
     	
-    	long minTsIndex = -1;
- 
+    	long now = System.currentTimeMillis();
+    	
+    	// remove expire SESSION
 		for (HlsClientSession session : clientSessions.values()) {
-			
-			// get min TS Index
-			long[] tsIndexs = session.getOldTsIndexs();
-			if ( tsIndexs != null ) {
-				long tmpTsIndex = Longs.min(tsIndexs);
-				if ( minTsIndex == -1 || minTsIndex > tmpTsIndex )  {
-					minTsIndex = tmpTsIndex;
-				} 
-			}
-			
 			// remove expire session
-			if (now - session.getMtime() > timeout) {
+			if (now - session.getMtime() > SESSION_TIMEOUT_MS) {
 				clientSessions.remove( session.getId() );
-				LOGGER.info("##streamId={},  remove session:{}, size={} ", streamId, session, clientSessions.size());
+				LOGGER.info("##streamId={},  remove session sid:{},  cache size={} ", streamId, session.getId(), clientSessions.size());
 			}
 		}
-    	
-		
-		// remove expire TS 
+  
+		// remove expire TS SEGMENT 
 		for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
 			long tsIndex =  entry.getKey();
 			TsSegment tsSegment = entry.getValue();
 			
-			if ( System.currentTimeMillis() - tsSegment.getLasttime() > timeout  || (minTsIndex > tsIndex) ) {
+			if ( now - tsSegment.getCtime() > TS_TIMEOUT_MS && tsSegments.size() > 5 ) {
 				tsSegments.remove( tsIndex );
-				LOGGER.info("##streamId={},  remove ts name={},  minTsIndex={},  cache ts size={} ", 
-						streamId, tsIndex,  minTsIndex, tsSegments.size());
+				LOGGER.info("##streamId={},  remove ts index={},  cache size={} ", streamId, tsIndex, tsSegments.size());
 			} 
 		}
-		
-		
     }
     
     // length= 3 ~ 5
@@ -163,6 +152,7 @@ public class HlsLiveStream {
     }
     
     public TsSegment fetchTsSegmentByIndex(long index) {
+    	
     	if ( index < 0 )
     		return null;
     	
@@ -182,6 +172,7 @@ public class HlsLiveStream {
     		
     		List<TsSegment> adTsSegments = AdsMagr.getTsSegments(type, sampleRate, sampleSizeInBits, channels, fps);
     		tsSegment = adTsSegments.get((int)index - 1);
+    		
     	} else {
     		tsSegment = tsSegments.get( index );
     	}
@@ -223,6 +214,10 @@ public class HlsLiveStream {
         
         if ( tsSegmenter != null)
         	tsSegmenter.close();
+        
+        if ( tsSegments != null ) {
+        	tsSegments.clear();
+        }
     }
 
     public long getMtime() {

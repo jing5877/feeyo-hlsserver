@@ -40,7 +40,8 @@ public class HlsClientSession {
     private M3U8 m3u8 = null;
     private M3u8Builder m3u8Builder = new M3u8Builder( AacTranscodingTsSegmenter.TS_DURATION );
     
-    private volatile long[] oldTsIndexs = null;		// m3u8 内对应的 TS列表
+    private volatile long[] tsIndexs = null;		// m3u8 内对应的 TS列表
+    
     
     public HlsClientSession(HlsLiveStream liveStream) {
         this.liveStream = liveStream;
@@ -52,10 +53,9 @@ public class HlsClientSession {
         this.mtime = now; 
     }
 
-    public long[] getOldTsIndexs() {
-		return oldTsIndexs;
+    public long[] getTsIndexs() {
+		return tsIndexs;
 	}
-    
 
 	public M3U8 getM3u8File(String filename) throws Exception {
 		
@@ -66,11 +66,12 @@ public class HlsClientSession {
     	 */
         boolean isFirst = ctime == mtime;
         if ( isFirst && AdsMagr.isHasAds() ) {
-        	oldTsIndexs = new long[] { 1, 2, 3 };
+        	tsIndexs = new long[] { 1, 2, 3 };
         	
         } else {
-        	
+
         	// 无嵌入式广告
+        	long[] oldTsIndexs = tsIndexs;
         	if ( oldTsIndexs == null ) {
         		
         		long[] newTsIndexs = liveStream.fetchTsIndexs();
@@ -80,7 +81,7 @@ public class HlsClientSession {
         			long[] tmpIndexs = new long[ tsNum ];
         			System.arraycopy(newTsIndexs, newTsIndexs.length - tsNum, tmpIndexs, 0, tsNum);
         			
-        			oldTsIndexs = tmpIndexs;
+        			tsIndexs = tmpIndexs;
         		    isTsModified = true;
         		}
         		
@@ -102,7 +103,7 @@ public class HlsClientSession {
         				// 存在新的 ts
         				if ( p1 > 0 ) {
         					
-        					/*
+        					 /*
         					  123,  4      --> 234
         					  123,  45     --> 2345
         					  123,  456    --> 23456
@@ -137,10 +138,10 @@ public class HlsClientSession {
         						System.arraycopy(tmpIndexs2, 0, tmpIndexs3, 0, tmpIndexs2.length);
         						tmpIndexs3[ tmpIndexs3.length - 1 ] = lastTmpIndex2 + 1;
         						
-        						oldTsIndexs = tmpIndexs3;
+        						tsIndexs = tmpIndexs3;
         						
         					} else {
-        						oldTsIndexs = tmpIndexs2;
+        						tsIndexs = tmpIndexs2;
         					}
         					
         					isTsModified = true;
@@ -153,7 +154,7 @@ public class HlsClientSession {
         					System.arraycopy(oldTsIndexs, 1, tmpIndexs, 0, oldTsIndexs.length - 1);	// 前移
         					tmpIndexs[4] = lastOldIndex + 1;											// 追加
         					
-        					oldTsIndexs = tmpIndexs;
+        					tsIndexs = tmpIndexs;
         					isTsModified = true;
         				}
         			}
@@ -165,13 +166,13 @@ public class HlsClientSession {
         
         this.mtime = System.currentTimeMillis();
     	
-    	LOGGER.debug("rquest filename={} " + ", tsIndexs=" + Arrays.toString( oldTsIndexs )  , filename );
+    	LOGGER.debug("rquest filename={} " + ", tsIndexs=" + Arrays.toString( tsIndexs )  , filename );
     	
     	//
     	List<TsSegment> tsSegments = new LinkedList<TsSegment>();
-    	if ( oldTsIndexs != null ) {
-    		for(long tsIndex: oldTsIndexs) {
-    			TsSegment tsSegment = liveStream.fetchTsSegmentByIndex(tsIndex);
+    	if ( tsIndexs != null ) {
+    		for(long index: tsIndexs) {
+    			TsSegment tsSegment = liveStream.fetchTsSegmentByIndex(index);
     			if ( tsSegment != null ) {
     				if ( tsSegment.isAds() )
     					 tsSegment.setDiscontinue(true);
