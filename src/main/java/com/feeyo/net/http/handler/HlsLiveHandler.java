@@ -171,6 +171,12 @@ public class HlsLiveHandler implements IRequestHandler {
             byte[] content = tsSegment.getData();
             long fileMTime = tsSegment.getCtime();
 
+            /*
+              HTTP CACHE
+              1、Last-Modified
+              2、Expires
+              3、Cache-Control
+             */
             response.headers().set(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
             response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
             response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
