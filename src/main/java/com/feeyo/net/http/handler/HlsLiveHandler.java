@@ -42,7 +42,7 @@ public class HlsLiveHandler implements IRequestHandler {
     
     private static final String LIVE_M3U8 = "live.m3u8";
     
-    private static final int TS_HTTP_CACHE_TIME_MS = 1000 * 60 * 2;		//
+    private static final int TS_HTTP_CACHE_TIME_MS = 1000 * 30;		//
     
     private static final byte[] TS_PREPARING = "ts segment preparing ...".getBytes();
 
@@ -118,8 +118,16 @@ public class HlsLiveHandler implements IRequestHandler {
             	HttpResponse response =  HttpUtil.redirectFound( url.toString() );
     			e.getChannel().write(response);
     			return;
+    			
+            } else {
+            	// 
+            	long now = System.currentTimeMillis();
+            	if ( now - clientSession.getMtime() > ( 30 * 1000 ) ) {
+            		clientSession.reset();
+            	}
             }
             
+
             M3U8 m3u8 = clientSession.getM3u8File( requestFile );
             
             DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
@@ -130,9 +138,10 @@ public class HlsLiveHandler implements IRequestHandler {
             response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
             response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
             response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
-            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=5");	//
+            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=4");	//
             response.setContent(ChannelBuffers.copiedBuffer(content));
             e.getChannel().write(response);
+
         	
         // 1...N.ts
         } else {

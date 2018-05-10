@@ -121,7 +121,7 @@ public class HlsLiveStream {
 			long tsIndex =  entry.getKey();
 			TsSegment tsSegment = entry.getValue();
 			
-			if ( now - tsSegment.getCtime() > TS_TIMEOUT_MS && tsSegments.size() > 5 ) {
+			if ( ((now - tsSegment.getCtime()) > TS_TIMEOUT_MS) && tsSegments.size() > 5 ) {
 				tsSegments.remove( tsIndex );
 				LOGGER.info("##streamId={},  remove ts index={},  cache size={} ", streamId, tsIndex, tsSegments.size());
 			} 

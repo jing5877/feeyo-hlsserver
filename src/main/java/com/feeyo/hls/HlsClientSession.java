@@ -52,6 +52,10 @@ public class HlsClientSession {
         this.ctime = now;
         this.mtime = now; 
     }
+    
+    public void reset() {
+    	this.tsIndexs = null;
+    }
 
     public long[] getTsIndexs() {
 		return tsIndexs;
@@ -150,7 +154,7 @@ public class HlsClientSession {
         				//
         				if ( newIncreaseNum > 0 ) {
         					long[] tmpIndexs = new long[ 5 ];
-        					System.arraycopy(oldTsIndexs, 1, tmpIndexs, 0, oldTsIndexs.length - 1);	// 前移
+        					System.arraycopy(oldTsIndexs, 1, tmpIndexs, 0, oldTsIndexs.length - 1);		// 前移
         					tmpIndexs[4] = lastOldIndex + 1;											// 追加
         					
         					tsIndexs = tmpIndexs;
@@ -173,9 +177,14 @@ public class HlsClientSession {
     		for(long index: tsIndexs) {
     			TsSegment tsSegment = liveStream.fetchTsSegmentByIndex(index);
     			if ( tsSegment != null ) {
+    				
     				if ( tsSegment.isAds() )
     					 tsSegment.setDiscontinue(true);
+    				
     				tsSegments.add(tsSegment);
+    				
+    			} else {
+    				LOGGER.warn("get m3u8 err: ts index={}  not found", index);
     			}
     		}
     	}
