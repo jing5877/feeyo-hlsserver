@@ -123,6 +123,7 @@ public class HlsLiveHandler implements IRequestHandler {
             	// 
             	long now = System.currentTimeMillis();
             	if ( now - clientSession.getMtime() > ( 30 * 1000 ) ) {
+            		LOGGER.warn("session info: {},  no request for a long time, reset tsIndexs. ",   clientSession );
             		clientSession.reset();
             	}
             }
