@@ -35,8 +35,8 @@ public class HlsLiveStream {
 	
 	private static Logger LOGGER = LoggerFactory.getLogger( HlsLiveStream.class );
 	
-	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 2;			
-	private static final int TS_TIMEOUT_MS = SESSION_TIMEOUT_MS;			
+	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 1;			
+	private static final int TS_TIMEOUT_MS = SESSION_TIMEOUT_MS * 5;			
     
     // id -> client session
     private Map<String, HlsClientSession> clientSessions = new ConcurrentHashMap<String, HlsClientSession>();
