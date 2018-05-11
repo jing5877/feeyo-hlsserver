@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.feeyo.hls.HlsLiveStreamMagr;
-import com.feeyo.net.udp.packet.ByteUtil;
 import com.feeyo.net.udp.packet.V5Packet;
 import com.feeyo.net.udp.packet.V5PacketDecoder;
 import com.feeyo.net.udp.packet.V5PacketErrorException;
@@ -33,7 +32,7 @@ public class UdpServerChannelHandler extends SimpleChannelHandler {
 	
 	@Override
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-
+		
 		InetSocketAddress addr = (InetSocketAddress) ctx.getChannel().getRemoteAddress();
 		if (addr == null) {
 			addr = (InetSocketAddress) e.getRemoteAddress();
@@ -41,6 +40,15 @@ public class UdpServerChannelHandler extends SimpleChannelHandler {
 
 		ChannelBuffer channelBuffer = (ChannelBuffer) e.getMessage();
 		byte[] data = channelBuffer.array();
+		
+		// decode err
+		if ( data.length < V5Packet.HEAD_LENGTH ) {
+			byte[] response = new byte[2]; 
+			response[0] = 0x11;
+			response[1] = 0x13;
+			e.getChannel().write( ChannelBuffers.copiedBuffer( response ) , addr);
+			return;
+		}
 		
 		try {
 			
@@ -54,28 +62,36 @@ public class UdpServerChannelHandler extends SimpleChannelHandler {
 					HlsLiveStreamMagr.INSTANCE().handleStream(packet);		
 					break;
 				}
-				
-				// RESP
-				byte[] response =  new byte[11];
-				response[0] = 0x11;
-				response[1] = 0x12;
-				
-				response[2] = ByteUtil.getByte3( packet.getPacketId() );
-				response[3] = ByteUtil.getByte2( packet.getPacketId() );
-				response[4] = ByteUtil.getByte1( packet.getPacketId() );
-				response[5] = ByteUtil.getByte0( packet.getPacketId() );
-				
-				response[6] = ByteUtil.getByte3( packet.getPacketOffset() );
-				response[7] = ByteUtil.getByte2( packet.getPacketOffset() );
-				response[8] = ByteUtil.getByte1( packet.getPacketOffset() );
-				response[9] = ByteUtil.getByte0( packet.getPacketOffset() );
-				
-				response[10] = packet.getPacketType();
-				e.getChannel().write( ChannelBuffers.copiedBuffer( response ) , addr);
-				
 			}
+			
+			// RESP
+			byte[] response =  new byte[11];
+			response[0] = 0x11;
+			response[1] = 0x12;
+			
+			// packetId
+			response[2] = data[15];
+			response[3] = data[16];
+			response[4] = data[17];
+			response[5] = data[18];
+			
+			// packetOffset
+			response[6] = data[23];
+			response[7] = data[24];
+			response[8] = data[25];
+			response[9] = data[26];
+			
+			response[10] = data[6];
+			e.getChannel().write( ChannelBuffers.copiedBuffer( response ) , addr);
+			
 		} catch (V5PacketErrorException e1) {
+			
 			LOGGER.warn("packet decode err:", e);
+			
+			byte[] response = new byte[2]; 
+			response[0] = 0x11;
+			response[1] = 0x13;
+			e.getChannel().write( ChannelBuffers.copiedBuffer( response ) , addr);
 		} 
 	}
 

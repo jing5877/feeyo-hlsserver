@@ -131,9 +131,8 @@ public class V5PacketDecoder {
 		//}
 		
 		
-		V5Packet packet = new V5Packet(packetSender, packetType, packetReserved, packetId, packetLength, packetOffset, packetData, crc);
-		
 		// 分包的情况，需要考虑拼接
+		V5Packet packet = new V5Packet(packetSender, packetType, packetReserved, packetId, packetLength, packetOffset, packetData, crc);
 		if ( packet.isPartPacket() ) {
 			
 			V5PacketCacheItem item = _cache.get( packet.getPacketId() );
