@@ -92,7 +92,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 								while (!aacLocking.compareAndSet(false, true)) {
 								}
 								RawItem raw = aacRawCache.remove(0);
-								FrameData aacFrame = aacTsSegmenter.process(raw.rawData);
+								FrameData aacFrame = aacTsSegmenter.rawDataToFrameData(raw.rawData);
 								if (aacFrame != null)
 									aacFrameCache.offer(aacFrame);
 								if (preAacIndex != raw.index)
@@ -170,7 +170,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			if (index == preAacIndex + 1) {
 				preAacIndex++;
 				skipAac = false;
-				FrameData aacFrame = aacTsSegmenter.process(rawData);
+				FrameData aacFrame = aacTsSegmenter.rawDataToFrameData(rawData);
 				if (aacFrame != null)
 					aacFrameCache.offer(aacFrame);
 				preAacCTime = System.currentTimeMillis();
@@ -189,7 +189,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			while (!aacRawCache.isEmpty() && aacRawCache.get(0).index == preAacIndex + 1) {
 				preAacIndex++;
 				skipAac = false;
-				FrameData aacFrame = aacTsSegmenter.process(aacRawCache.remove(0).rawData);
+				FrameData aacFrame = aacTsSegmenter.rawDataToFrameData(aacRawCache.remove(0).rawData);
 				if (aacFrame != null)
 					aacFrameCache.offer(aacFrame);
 				preAacCTime = System.currentTimeMillis();
