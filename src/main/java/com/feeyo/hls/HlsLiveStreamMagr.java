@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -17,6 +18,7 @@ import com.feeyo.audio.codec.Decoder;
 import com.feeyo.audio.codec.PcmuDecoder;
 import com.feeyo.net.udp.packet.V5Packet;
 import com.feeyo.net.udp.packet.V5PacketType;
+import com.feeyo.util.DefaultThreadFactory;
 
 /**
  * HLS LIVE Stream MANAGE
@@ -30,7 +32,10 @@ public class HlsLiveStreamMagr {
     
 	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		// ten minute
 	
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(10, 100, 1000L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+	// dispatch thread pool
+    private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(10, 100, 60 * 1000L, 
+    		TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(5000), new DefaultThreadFactory("HlsLsMagr-", true));
+    
     private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(3);
 
     // alias -> streamId 
@@ -109,8 +114,8 @@ public class HlsLiveStreamMagr {
 
     public void close() {
     	
-        if (executor != null) {
-            executor.shutdown();
+        if (threadPoolExecutor != null) {
+            threadPoolExecutor.shutdown();
         }
         
         if ( scheduledExecutor != null ) {
@@ -200,63 +205,72 @@ public class HlsLiveStreamMagr {
     
 	public void handleStream(final V5Packet packet) {
 
-		executor.execute(new Runnable() {
-
-			Decoder pcmuDecoder = new PcmuDecoder();
-
-			@Override
-			public void run() {
-				long packetSender = packet.getPacketSender();
-				byte packetType = packet.getPacketType();
-				byte[] packetReserved = packet.getPacketReserved();
-
-				HlsLiveStream liveStream = streamIdToLiveStreamCache.get(packetSender);
-				if (liveStream != null) {
-
-					boolean isPass = false;
-					if ( liveStream.getStreamType() == HlsLiveStreamType.AAC && packetType == V5PacketType.AAC_STREAM ) {
-						isPass = true;
-						
-					} else if ( liveStream.getStreamType() == HlsLiveStreamType.PCM && packetType == V5PacketType.PCM_STREAM ) {
-						isPass = true;
-
-					} else if (liveStream.getStreamType() == HlsLiveStreamType.H264 && packetType == V5PacketType.H264_STREAM ) {
-						isPass = true;
-						
-					} else if (liveStream.getStreamType() == HlsLiveStreamType.YUV && packetType == V5PacketType.YUV422_STREAM ) {
-						isPass = true;
-
-					} else if (liveStream.getStreamType() == HlsLiveStreamType.AAC_H264_MIXED
-							&& (packetType == V5PacketType.H264_STREAM || packetType == V5PacketType.AAC_STREAM)) {
-						isPass = true;
-					}
-
-					if ( isPass ) {
-						byte[] packetData = packet.getPacketData();
-						byte[] reserved = packet.getPacketReserved();
-						if (V5PacketType.PCM_STREAM == packet.getPacketType()) {
-							packetData = pcmuDecoder.process(packet.getPacketData());
+		
+		try {		
+			threadPoolExecutor.execute(new Runnable() {
+	
+				Decoder pcmuDecoder = new PcmuDecoder();
+	
+				@Override
+				public void run() {
+					long packetSender = packet.getPacketSender();
+					byte packetType = packet.getPacketType();
+					byte[] packetReserved = packet.getPacketReserved();
+	
+					HlsLiveStream liveStream = streamIdToLiveStreamCache.get(packetSender);
+					if (liveStream != null) {
+	
+						boolean isPass = false;
+						if ( liveStream.getStreamType() == HlsLiveStreamType.AAC && packetType == V5PacketType.AAC_STREAM ) {
+							isPass = true;
 							
-							VolumeControl volumeCtl = streamIdToVolumeControlCache.get(packetSender);
-							if( volumeCtl == null ) {
-								volumeCtl = new VolumeControl(liveStream.getSampleRate(),packet.getPacketLength());
-								streamIdToVolumeControlCache.put( packetSender, volumeCtl);
-							}
+						} else if ( liveStream.getStreamType() == HlsLiveStreamType.PCM && packetType == V5PacketType.PCM_STREAM ) {
+							isPass = true;
+	
+						} else if (liveStream.getStreamType() == HlsLiveStreamType.H264 && packetType == V5PacketType.H264_STREAM ) {
+							isPass = true;
 							
-							packetData = volumeCtl.autoControlVolume(packetData);
+						} else if (liveStream.getStreamType() == HlsLiveStreamType.YUV && packetType == V5PacketType.YUV422_STREAM ) {
+							isPass = true;
+	
+						} else if (liveStream.getStreamType() == HlsLiveStreamType.AAC_H264_MIXED
+								&& (packetType == V5PacketType.H264_STREAM || packetType == V5PacketType.AAC_STREAM)) {
+							isPass = true;
 						}
-						liveStream.addAvStream(packetType, packetReserved, packetData, reserved);
+	
+						if ( isPass ) {
+							byte[] packetData = packet.getPacketData();
+							byte[] reserved = packet.getPacketReserved();
+							if (V5PacketType.PCM_STREAM == packet.getPacketType()) {
+								packetData = pcmuDecoder.process(packet.getPacketData());
+								
+								VolumeControl volumeCtl = streamIdToVolumeControlCache.get(packetSender);
+								if( volumeCtl == null ) {
+									volumeCtl = new VolumeControl(liveStream.getSampleRate(),packet.getPacketLength());
+									streamIdToVolumeControlCache.put( packetSender, volumeCtl);
+								}
+								
+								packetData = volumeCtl.autoControlVolume(packetData);
+							}
+							liveStream.addAvStream(packetType, packetReserved, packetData, reserved);
+							
+						} else {
+							LOGGER.warn("livestream no pass err: streamId={}, streamType={}, packetType={}", liveStream.getStreamId(),
+									liveStream.getStreamType(), packetType);
+						}
 						
 					} else {
-						LOGGER.warn("livestream no pass err: streamId={}, streamType={}, packetType={}", liveStream.getStreamId(),
-								liveStream.getStreamType(), packetType);
+						LOGGER.warn("livestream not found err: packetSender={}, packetType={}", packetSender, packetType);
 					}
-					
-				} else {
-					LOGGER.warn("livestream not found err: packetSender={}, packetType={}", packetSender, packetType);
 				}
-			}
-		});
+			});
+			
+		} catch (RejectedExecutionException rejectException) {	
+			LOGGER.warn("process thread pool is full, reject, active={} poolSize={} corePoolSize={} maxPoolSize={} taskCount={}",
+					threadPoolExecutor.getActiveCount(), threadPoolExecutor.getPoolSize(),
+					threadPoolExecutor.getCorePoolSize(), threadPoolExecutor.getMaximumPoolSize(),
+					threadPoolExecutor.getTaskCount());						
+		}		
 	}
 	
 }
