@@ -338,7 +338,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 		waitAac = (aacFrameCache.isEmpty() && maxAacPts + aacTsSegmenter.getPtsIncPerFrame() < maxAvcPts + h264TsSegmenter.getPtsIncPerFrame());
 	}
 
-	public void prepare4nextTs() {
+	public void prepare4NextTs() {
 		isFirstAvcPes = true;
 		isFirstAacPes = true;
 		tsSegmentLen = 0;
@@ -361,7 +361,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 				tsSegmentPtr += tsSecs[i].length;
 			}
 		}
-		prepare4nextTs();
+		prepare4NextTs();
 		return tsSegment;
 	}
 

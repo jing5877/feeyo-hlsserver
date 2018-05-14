@@ -6,29 +6,24 @@ import com.feeyo.mpeg2ts.TsWriter.FrameDataType;
 
 public class AacTsSegmenter extends AbstractTsSegmenter {
 
-	//
     protected int aacBufPtr = 0;        			
     protected byte[][] aacBufArr = null;			 
     
-    protected boolean isFirstPes = true;
-    
     protected TsWriter tsWriter;
     
-	public AacTsSegmenter() {
-		
+	public AacTsSegmenter() {	
 		super();
 		
 		int sampleRate = (int) this.sampleRate;												// 采样率
 		this.tsSegTime = 1.0F * (frameNum << 10) / sampleRate;								// tsSegment的持续时间，以秒为单位
 		this.ptsIncPerFrame = (90000 << 10) / sampleRate;
 
-		
 		this.tsWriter = new TsWriter();								
 		
 		this.frameNum = (TS_DURATION * sampleRate) >> 10;									// AAC 帧的数目， faac以1024位为一帧
 		this.aacBufArr = new byte[ frameNum ][];
 
-		prepare4nextTs();
+		prepare4NextTs();
 	}
 	
 	@Override
@@ -41,7 +36,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 		this.ptsIncPerFrame = (90000 << 10) / (int)sampleRate;
 	}
 
-	public void prepare4nextTs() {
+	public void prepare4NextTs() {
 		
 		tsWriter.reset();
 
@@ -63,14 +58,12 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 	protected byte[] segment(byte rawDataType, byte[] rawData, byte[] reserved) {
 		//
 		if (rawData != null && rawData.length > 0) {
-			
 			//
 			if ( aacBufPtr < frameNum ) {
 				aacBufArr[ aacBufPtr ] = rawData;
 				aacBufPtr++;
 			}
-			
-			
+
 			//
 			if (  aacBufPtr >= frameNum ) {
 				
@@ -86,7 +79,6 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 					
 					if ( aacBuf == null ) {
 						aacBuf = buf;
-						
 					} else {
 						byte[] newBuf = new byte[aacBuf.length + buf.length];
 						System.arraycopy(aacBuf, 0, newBuf, 0, aacBuf.length);
@@ -95,16 +87,12 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 						aacBuf = newBuf;
 					}
 					
-					
 					if ( i != 0 ) {
-						
 						int remainder = i % 3;
 						if ( remainder == 0 || i == frameNum - 1 ) {
-
 							pts += ptsIncPerFrame * remainder == 0 ? 3 : remainder;		// 计算 PTS
 							dts = pts;
-							
-							
+
 							frames[ frameIndex ] = new FrameData();
 							frames[ frameIndex ].buf = aacBuf;
 							frames[ frameIndex ].pts = pts;
@@ -114,28 +102,21 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 							frameIndex++;
 							
 							aacBuf = null;
-							
 						} 
-						
 					}
-					
 				}
 				
 				// 构造
-				byte[] tsBuf = tsWriter.write(isFirstPes, FrameDataType.AUDIO, frames);
+				byte[] tsBuf = tsWriter.write(true, FrameDataType.AUDIO, frames);
 				tsSegTime = (pts - ptsBase) / 90000F;
 				ptsBase = pts;
 				
-				prepare4nextTs();
-	                
+				prepare4NextTs();
 	            return tsBuf;
-				
 			}
         }
         return null;
 	}
-	
-
 	
 	//
 	public FrameData rawDataToFrameData(byte[] rawData) {
@@ -149,7 +130,6 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 			frameData.isAudio = true;
 			return frameData;
         }	
-		
 		return null;
 	}
 	

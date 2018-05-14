@@ -29,7 +29,7 @@ public class AacTranscodingTsSegmenter extends AacTsSegmenter {
 
         aacEncoder = aacEncoderPool.borrow(this.sampleRate, this.sampleSizeInBits, this.channels, true);
         
-        prepare4nextTs();
+        prepare4NextTs();
         
         
         // process the cached packets, need tens of milliseconds and the interval between rtp packet is 128ms
@@ -38,7 +38,7 @@ public class AacTranscodingTsSegmenter extends AacTsSegmenter {
         }
     }
 
-	public void prepare4nextTs() {
+	public void prepare4NextTs() {
 
 		tsWriter.reset();
 

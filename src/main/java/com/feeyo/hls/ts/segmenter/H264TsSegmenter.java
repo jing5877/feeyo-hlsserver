@@ -70,7 +70,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		framesBuf = new RingBuffer(TWO_FRAME_MAX_SIZE);
 		tsSecs = new byte[3000][];
 		
-		prepare4nextTs();
+		prepare4NextTs();
 	}
 	
 	
@@ -85,7 +85,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		tsSegTime = frameNum * ptsIncPerFrame / 1000F;	//默认值
 	}
 
-	public void prepare4nextTs() {
+	public void prepare4NextTs() {
 
 		numInGop = 0;
 		tsSecsPtr = 0;
@@ -182,7 +182,7 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 			                    tsSegmentPtr += tsSecs[j].length;
 							}
 		                }
-		                prepare4nextTs();
+		                prepare4NextTs();
 		                
 					}
 				}
