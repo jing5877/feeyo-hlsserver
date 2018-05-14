@@ -4,9 +4,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -29,7 +30,7 @@ public class HlsLiveStreamMagr {
     
 	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		// ten minute
 	
-    private static ExecutorService executor = Executors.newFixedThreadPool(10);
+    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(10, 100, 1000L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
     private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(3);
 
     // alias -> streamId 

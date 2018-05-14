@@ -73,9 +73,9 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 				int frameIndex = 0;
 						
 				byte[] aacBuf = null;
-				for(int i = 0; i < frameNum; i++) {
+				for(int i = 1; i <= frameNum; i++) {
 
-					byte[] buf = aacBufArr[i];
+					byte[] buf = aacBufArr[i - 1];
 					
 					if ( aacBuf == null ) {
 						aacBuf = buf;
@@ -87,23 +87,21 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 						aacBuf = newBuf;
 					}
 					
-					if ( i != 0 ) {
-						int remainder = i % 3;
-						if ( remainder == 0 || i == frameNum - 1 ) {
-							pts += ptsIncPerFrame * (remainder == 0 ? 3 : remainder);		// 计算 PTS
-							dts = pts;
+					int remainder = i % 3;
+					if ( remainder == 0 || i == frameNum ) {
+						pts += ptsIncPerFrame * (remainder == 0 ? 3 : remainder);		// 计算 PTS
+						dts = pts;
 
-							frames[ frameIndex ] = new FrameData();
-							frames[ frameIndex ].buf = aacBuf;
-							frames[ frameIndex ].pts = pts;
-							frames[ frameIndex ].dts = dts;
-							frames[ frameIndex ].isAudio = true;
-									
-							frameIndex++;
-							
-							aacBuf = null;
-						} 
-					}
+						frames[ frameIndex ] = new FrameData();
+						frames[ frameIndex ].buf = aacBuf;
+						frames[ frameIndex ].pts = pts;
+						frames[ frameIndex ].dts = dts;
+						frames[ frameIndex ].isAudio = true;
+								
+						frameIndex++;
+						
+						aacBuf = null;
+					} 
 				}
 				
 				// 构造
@@ -126,7 +124,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 			FrameData frameData =  new FrameData();
 			frameData.buf = rawData;
 			frameData.pts = pts;
-			frameData.dts = 0;
+			frameData.dts = pts;
 			frameData.isAudio = true;
 			return frameData;
         }	
