@@ -90,7 +90,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 					if ( i != 0 ) {
 						int remainder = i % 3;
 						if ( remainder == 0 || i == frameNum - 1 ) {
-							pts += ptsIncPerFrame * remainder == 0 ? 3 : remainder;		// 计算 PTS
+							pts += ptsIncPerFrame * (remainder == 0 ? 3 : remainder);		// 计算 PTS
 							dts = pts;
 
 							frames[ frameIndex ] = new FrameData();
