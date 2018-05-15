@@ -31,6 +31,7 @@ import com.feeyo.net.http.filter.HlsTrafficFilter;
 import com.feeyo.net.http.filter.IFilter;
 import com.feeyo.net.http.filter.WhiteHostCheckFilter;
 import com.feeyo.net.http.handler.HlsLiveHandler;
+import com.feeyo.net.http.handler.HlsLiveStreamPlayListHandler;
 import com.feeyo.net.http.handler.HlsManageHandler;
 import com.feeyo.net.http.handler.HlsVodHandler;
 import com.feeyo.net.http.handler.IRequestHandler;
@@ -60,6 +61,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
     	// 注册处理器
 		registerHandler(HttpMethod.GET, "/hls/*/*", new HlsLiveHandler());
 		registerHandler(HttpMethod.GET, "/hls/vod/*/*", new HlsVodHandler());
+		registerHandler(HttpMethod.GET, "/hls/playlist", new HlsLiveStreamPlayListHandler());
 		
 		registerHandler(HttpMethod.POST, "/hls/manage", new HlsManageHandler());
 

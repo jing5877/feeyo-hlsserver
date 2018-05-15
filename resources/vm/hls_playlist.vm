@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+	<meta http-equiv="content-type" content="txt/html; charset=utf-8" />
+	<script src='/static/jquery/js/jquery-1.9.1.min.js' ></script>
+	<script src='/static/jquery/js/jquery-validate.js' ></script>
+	<script src="/static/jquery/js/nprogress.js"></script>
+	
+	<style type="text/css">
+	
+		#title{
+			font-family: "Georgia", Tahoma, Sans-Serif;
+			font-size: 25px;
+			line-height: 18px;
+			color: #888;
+		}
+		
+        .container{
+        	width: 60%;
+        	position: relative;
+  			left: 20%;
+            text-align: center;
+            padding-top: 80px;
+            font-size: 18px;
+            color: rgb(0, 0, 0);
+            float: left;
+            margin-bottom:8px;
+        }
+        
+        .box_panel{
+			padding:2%;
+        	border:2px solid;
+			border-radius:25px;
+			border-color: rgb(160, 189, 189);
+			float: left;
+			clear:right;
+        }
+        
+        .box{
+			position:relative;
+			float: left;
+			margin-left:5px;
+			margin-bottom:8px;
+			width:19%;
+			height:110px;			
+		    border-radius: 4px;
+		    border:1px solid black; 
+		    border-color: rgb(230, 189, 189);
+		    background: #eeeeee;
+		}
+		
+		.ssrc{
+			position: relative;
+			text-align: left;
+			float:left;
+			padding-top: 10px;
+			padding-left: 20px;
+			font-size: 16px;
+		}
+		
+		.timestamp{
+			clear:both;
+			text-align:left;
+			font-size:13px;
+			padding-left:20px;
+		}
+		
+		a:link {
+			color: #296192; 
+			text-decoration: none; 
+		} 
+		a:hover {
+			color: #296192; 
+			text-decoration: underline; 
+		} 
+		
+	</style>
+	
+</head>
+<body>
+
+	<div class = "container">
+		<p id="title">
+			FEEYO - Hls Live Stream
+		</p>
+		
+		<hr/><br/>
+	
+		<div class = "box_panel">
+			#foreach($item in $streams)
+			<div class = "box">
+			
+				<p class = "ssrc">
+					<a href = "/hls/${item.aliasNames.get(0)}/live.m3u8" target = "_blank"> 
+						${item.streamId}
+					</a>
+				</p>
+				<p class = "timestamp">
+					$!item.mtime
+				</p>
+				
+				</span>
+			</div>
+			#end
+		</div>
+	</div>
+	
+</body>
+
+	<script type="text/javascript">
+		
+		NProgress.start();
+	
+		$(function(){
+		
+			var unixToDate =  function(unixTime) {	
+			
+	            var time = new Date(unixTime);
+	            var ymdhis = "";
+	            ymdhis += time.getFullYear() + "-";
+	            ymdhis += ((time.getMonth() + 1) < 10 ? '0' + (time.getMonth() + 1) : (time.getMonth() + 1) ) + "-";
+	            ymdhis += (time.getDate() < 10 ? '0' + time.getDate() : time.getDate());
+	            ymdhis += "  ";
+	            ymdhis += (time.getHours() < 10 ? '0' + time.getHours() : time.getHours()) + ":";
+	            ymdhis += (time.getMinutes() < 10 ? '0' + time.getMinutes() : time.getMinutes()) + ":";
+	            ymdhis += (time.getSeconds() < 10 ? '0' + time.getSeconds() : time.getSeconds());
+	    
+	            return ymdhis;
+	        }
+	        
+	        var timeProcess = function() {
+		        var current = Date.parse(new Date())  / 1000;
+			
+		        var panels = $(".box");		        
+		        panels.each(function(i) {
+		        	var panel = $(panels[i]);
+		        	
+		        	var pem = panel.find('.timestamp');
+		        	pem.each(function(j){
+		        		var p = $(pem[j]);
+		        		if(!isNaN(p.text())){
+		        		
+		        			var timestamp = parseInt(p.text());
+		        			p.html(unixToDate(timestamp));
+		        			
+		        		}
+		        	});
+		        });
+		        
+		        NProgress.done();
+	        }
+	        
+	        timeProcess();
+
+		});
+		
+	</script>
+
+</html>

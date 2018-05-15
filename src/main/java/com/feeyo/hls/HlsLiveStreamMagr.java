@@ -1,5 +1,6 @@
 package com.feeyo.hls;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -132,6 +133,10 @@ public class HlsLiveStreamMagr {
     
     public Long getStreamIdByAlias(String alias) {
     	return aliasToStreamIdCache.get(alias);
+    }
+    
+    public Collection<HlsLiveStream> getLiveStreamCache(){
+    	return streamIdToLiveStreamCache.values();
     }
     
     public boolean updateHlsLiveStreamAliasNamesById(long streamId, List<String> newAliasNames) {
