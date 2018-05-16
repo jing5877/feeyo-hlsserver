@@ -17,7 +17,7 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
 
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.util.velocity.VelocityBuilder;
-public class HlsLiveStreamPlayListHandler implements IRequestHandler {
+public class HlsLivePlayListHandler implements IRequestHandler {
 	
 	@Override
 	public Type getType() {
