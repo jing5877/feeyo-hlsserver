@@ -37,6 +37,7 @@ import com.feeyo.net.http.handler.HlsVodHandler;
 import com.feeyo.net.http.handler.IRequestHandler;
 import com.feeyo.net.http.handler.IRequestHandler.Type;
 import com.feeyo.net.http.handler.ResourceFileDownloadGetHandler;
+import com.feeyo.net.http.handler.WelcomeHandler;
 import com.feeyo.net.http.util.PathTrie;
 
 /**
@@ -59,6 +60,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
     	super();    	
     	
     	// 注册处理器
+    	registerHandler(HttpMethod.GET, "/", new WelcomeHandler());	
 		registerHandler(HttpMethod.GET, "/hls/*/*", new HlsLiveHandler());
 		registerHandler(HttpMethod.GET, "/hls/vod/*/*", new HlsVodHandler());
 		registerHandler(HttpMethod.GET, "/hls/playlist", new HlsLivePlayListHandler());
