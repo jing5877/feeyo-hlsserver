@@ -135,7 +135,7 @@ public class HlsLiveStreamMagr {
     	return aliasToStreamIdCache.get(alias);
     }
     
-    public Collection<HlsLiveStream> getLiveStreamCache(){
+    public Collection<HlsLiveStream> getAllLiveStream(){
     	return streamIdToLiveStreamCache.values();
     }
     

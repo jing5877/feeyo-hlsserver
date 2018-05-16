@@ -56,6 +56,8 @@ public class HlsLiveStream {
     
     // asias
     private List<String> aliasNames;
+    
+    private long rawCount = 0;
 
     //
     private AbstractTsSegmenter tsSegmenter = null;
@@ -219,8 +221,12 @@ public class HlsLiveStream {
         	tsSegments.clear();
         }
     }
+    
+    public long getRawCount() {
+		return rawCount;
+	}
 
-    public long getMtime() {
+	public long getMtime() {
         return mtime;
     }
 
@@ -263,6 +269,7 @@ public class HlsLiveStream {
 	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
     	
     	this.mtime = System.currentTimeMillis();
+    	this.rawCount++;
 
     	if( tsSegmenter != null) {
 	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, reserved );

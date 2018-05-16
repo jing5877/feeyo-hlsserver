@@ -7,48 +7,24 @@
 		<script src='/static/jquery/js/jquery-validate.js' ></script>
 		
 		<style type="text/css">
-		
-			
-	
-	        
-	        .box_panel{
-				padding:2%;
-	        	border:2px solid;
-				border-radius:25px;
-				border-color: rgb(160, 189, 189);
-				float: left;
-				clear:right;
-	        }
-	        
-	        .box{
+
+	       .timestamp {
+				color: #c9c9c9;
+				font-size:11px;
+			}
+
+			.box {
 				position:relative;
-				float: left;
-				margin-left:5px;
+				float:left;
+				margin-left:9px;
 				margin-bottom:8px;
-				width:19%;
+				width:210px;
 				height:110px;			
 			    border-radius: 4px;
 			    border:1px solid black; 
-			    border-color: rgb(230, 189, 189);
-			    background: #eeeeee;
-			}
-			
-			.ssrc{
-				position: relative;
-				text-align: left;
-				float:left;
-				padding-top: 10px;
-				padding-left: 20px;
-				font-size: 16px;
-			}
-			
-			.timestamp{
-				clear:both;
-				text-align:left;
-				font-size:13px;
-				padding-left:20px;
-			}
-			
+			    background-color:#fff99;
+			}	
+			        
 		</style>
 		
 	</head>
@@ -71,18 +47,44 @@
 	    		
 	    		 
 						#foreach($item in $streams)
-						<div class = "box">
+						<div class="box">
 						
-							<p class = "ssrc">
-								<a href = "/hls/${item.aliasNames.get(0)}/live.m3u8" target="_blank"> 
-									${item.streamId}
-								</a>
-							</p>
-							<p class = "timestamp">
-								$!item.mtime
-							</p>
+							<div style="padding-left:2px; padding-bottom:5px;">
+	
+								<span style="float:left; background-color:yellow; padding:2px; font-size:14px;"> 
+										<a href="/hls/${item.aliasNames.get(0)}/live.m3u8" target="_blank"> 
+											${item.streamId}
+										</a>
+								</span>
+							</div>
 							
-							</span>
+							<div style="float:left; padding-left:2px; padding-top:16px; font-size:12px;">
+								<table>
+									<tr>
+										<td>
+											count: ${item.rawCount}
+										</td>
+									</tr>
+									
+									<tr>
+										<td>
+											#if($item.streamType < 10) 
+												audio sample=${item.sampleRate} / ${item.sampleSizeInBits} / ${item.channels}
+											#else 
+												video fps=${item.fps} 
+											#end   
+										</td>
+									</tr>
+									
+									<tr>
+										<td class="text-right" style="position:absolute; bottom:0px; padding:0px; margin:0px; right:0px; border-top:1px solid #ccc;"> 
+											 <label class="timestamp">
+												 $!item.mtime
+											 </label>
+										</td>
+									<tr>
+								</table>
+							</div>
 						</div>
 						#end
 			           			

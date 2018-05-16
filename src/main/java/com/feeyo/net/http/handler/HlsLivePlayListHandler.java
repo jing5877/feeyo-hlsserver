@@ -35,9 +35,9 @@ public class HlsLivePlayListHandler implements IRequestHandler {
 		VelocityBuilder velocityBuilder = new VelocityBuilder();
 		Map<String,Object> model = new HashMap<String, Object>();
 		
-		model.put("streams", HlsLiveStreamMagr.INSTANCE().getLiveStreamCache()); 
+		model.put("streams", HlsLiveStreamMagr.INSTANCE().getAllLiveStream()); 
 		
-		String htmlText = velocityBuilder.generate("hls_playlist.vm", "UTF8", model);
+		String htmlText = velocityBuilder.generate("playlist.vm", "UTF8", model);
 		
 		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
 		response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, htmlText.length());
