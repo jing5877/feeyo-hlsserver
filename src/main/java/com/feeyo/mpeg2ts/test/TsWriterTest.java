@@ -72,7 +72,7 @@ public class TsWriterTest {
 	
 	public static void main(String[] args) {
 		
-		byte[] buf1 = readTsFile( "/Users/zhuam/git/feeyo/feeyostreamhls/testdata/ec6d6ac2-283c-4f86-bbb3-ea4e03a214bf.ts" );
+		byte[] buf1 = readTsFile( "/Users/zhuam/git/variflight/feeyo-hlsserver/testdata/ec6d6ac2-283c-4f86-bbb3-ea4e03a214bf.ts" );
 	
 		//
 		TsReader tsReader = new TsReader();
@@ -162,20 +162,13 @@ public class TsWriterTest {
 		
 		TsWriter tsWriter2= new TsWriter();
 		
-//		long lastPts = 90000;
-//		for(int i = 0; i < audioFrames.length; i++) {
-//			
-//			long pts =  (90000L * 1024) / 8000;
-//			AvStreamFrame frame = audioFrames[i];
-//			lastPts += pts;
-//			frame.pts = lastPts;
-//		}
+
 		byte[] tsFileBuf2 = tsWriter2.write(true, FrameDataType.AUDIO, audioFrames );
-		writeTsFile("/Users/zhuam/git/feeyo/feeyostreamhls/testdata/test2.ts", tsFileBuf2);
+		writeTsFile("/Users/zhuam/git/variflight/feeyo-hlsserver/testdata/test2.ts", tsFileBuf2);
 		
 		TsWriter tsWriter3 = new TsWriter();
 		byte[] tsFileBuf3 = tsWriter3.write(true, FrameDataType.VIDEO, videoFrames );
-		writeTsFile("/Users/zhuam/git/feeyo/feeyostreamhls/testdata/test3.ts", tsFileBuf3);
+		writeTsFile("/Users/zhuam/git/variflight/feeyo-hlsserver/testdata/test3.ts", tsFileBuf3);
 
 		
 		

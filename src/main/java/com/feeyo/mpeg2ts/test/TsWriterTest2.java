@@ -128,7 +128,7 @@ public class TsWriterTest2 {
 		byte[] tsFileBuf = tsWriter1.write(true, FrameDataType.AUDIO, frames );
 		
 		// mix
-		writeTsFile("/Users/zhuam/git/feeyo/feeyostreamhls/testdata/test222.ts", tsFileBuf);
+		writeTsFile("/Users/zhuam/git/variflight/feeyo-hlsserver/testdata/test222.ts", tsFileBuf);
 		
 
 		
