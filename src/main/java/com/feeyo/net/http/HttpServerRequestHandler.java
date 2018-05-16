@@ -13,6 +13,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
@@ -143,24 +144,6 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
     @Override
 	public void messageReceived(final ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
 
-    	processHttpRequest(ctx, e);
-    	
-	}
-    
-    private boolean processFilter(ChannelHandlerContext ctx, MessageEvent messageEvent, IRequestHandler requestHandler) {    	
-    	List<IFilter> filters = filterChain.get(requestHandler.getType());
-		for (IFilter filter : filters) {
-			if (filter.doFilter(ctx, messageEvent)) {
-				continue;
-			} else {
-				return false;
-			}
-		}
-		return true;
-    }
-    
-    private void processHttpRequest(ChannelHandlerContext ctx, MessageEvent e) {
-    	
     	HttpRequest request = (DefaultHttpRequest) e.getMessage();
     	
     	String uri = request.getUri();
@@ -169,7 +152,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		if ( requestHandler != null ) {	
 			
 			boolean isFilted = requestHandler.isFilted();
-			if ( isFilted && !processFilter(ctx, e, requestHandler) ) {
+			if ( isFilted && !isFilter(ctx, e, requestHandler) ) {
 
 				IRequestHandler.Type type = requestHandler.getType();	
 				if ( type == IRequestHandler.Type.VM ) {
@@ -206,6 +189,26 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 			HttpResponse response = buildDefaultResponse("", HttpResponseStatus.NOT_FOUND);
 			sendResponse(ctx, response);
 		}    	
+	}
+    
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
+    	super.exceptionCaught(ctx, e);
+    	
+    	//ignore
+    }
+    
+    
+    private boolean isFilter(ChannelHandlerContext ctx, MessageEvent messageEvent, IRequestHandler requestHandler) {    	
+    	List<IFilter> filters = filterChain.get(requestHandler.getType());
+		for (IFilter filter : filters) {
+			if (filter.doFilter(ctx, messageEvent)) {
+				continue;
+			} else {
+				return false;
+			}
+		}
+		return true;
     }
     
     private HttpResponse buildErrorResponse(String errMsg) {
