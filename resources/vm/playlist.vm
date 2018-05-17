@@ -67,13 +67,15 @@
 										<td style="position:absolute; left:1px;  top:20px; padding:2px; margin:0px; right:0px; ">
 											count: ${item.rawCount}，
 											
-											avg: $numberSymbol.format('#0.00', 
-													$!mathSymbol.div($item.rawCount, 
-														$!mathSymbol.div( 
-															$!mathSymbol.sub($!item.mtime, $!item.ctime), 1000
+											#if( $item.rawCount > 0 ) 
+												avg: $numberSymbol.format('#0.00', 
+														$!mathSymbol.div($item.rawCount, 
+															$!mathSymbol.div( 
+																$!mathSymbol.sub($!item.mtime, $!item.ctime), 1000
+															)
 														)
-													)
-												 )
+													 )
+											#end   
 										</td>
 									</tr>
 									
