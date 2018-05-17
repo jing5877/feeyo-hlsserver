@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import com.feeyo.net.udp.test.TestDataUtil;
+import com.feeyo.test.TestDataUtil;
 
 public class TsDecoderTest {
 	

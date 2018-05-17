@@ -1,4 +1,4 @@
-package com.feeyo.net.udp.test;
+package com.feeyo.test;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;

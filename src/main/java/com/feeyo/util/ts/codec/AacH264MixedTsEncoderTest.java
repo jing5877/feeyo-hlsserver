@@ -9,7 +9,7 @@ import com.feeyo.hls.ts.segmenter.AacH264MixedTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AbstractTsSegmenter;
 import com.feeyo.net.udp.packet.ByteUtil;
 import com.feeyo.net.udp.packet.V5PacketType;
-import com.feeyo.net.udp.test.TestDataUtil;
+import com.feeyo.test.TestDataUtil;
 
 public class AacH264MixedTsEncoderTest {
 
