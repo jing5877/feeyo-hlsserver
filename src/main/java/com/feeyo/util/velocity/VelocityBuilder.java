@@ -10,6 +10,7 @@ import org.apache.velocity.app.Velocity;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
+import org.apache.velocity.tools.generic.DateTool;
 
 import com.feeyo.HlsCtx;
 
@@ -31,6 +32,7 @@ public class VelocityBuilder {
             ve.setProperty("file.resource.loader.class", "org.apache.velocity.runtime.resource.loader.FileResourceLoader");
             ve.setProperty("file.resource.loader.path", path);
             ve.setProperty(Velocity.RUNTIME_LOG_LOGSYSTEM, new VelocitySlf4JLogSystem());
+            
             try {
 				ve.init();
 			} catch (Exception e) {
@@ -39,9 +41,12 @@ public class VelocityBuilder {
         return ve;
     }
 
-    private void mergeTemplate(String name, String encoding, Map<String, Object> model, StringWriter writer) throws ResourceNotFoundException, ParseErrorException, Exception {
+    private void mergeTemplate(String name, String encoding, Map<String, Object> model, StringWriter writer) 
+    		throws ResourceNotFoundException, ParseErrorException, Exception {
         Template template = engine().getTemplate(name, encoding);
-        template.merge(new VelocityContext(model), writer);
+        VelocityContext ctx = new VelocityContext(model);
+        ctx.put("symbol", new DateTool());
+        template.merge(ctx, writer);
     }
 
 
