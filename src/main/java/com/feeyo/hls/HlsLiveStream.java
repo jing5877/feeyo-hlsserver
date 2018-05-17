@@ -41,6 +41,7 @@ public class HlsLiveStream {
     // id -> client session
     private Map<String, HlsClientSession> clientSessions = new ConcurrentHashMap<String, HlsClientSession>();
     
+    private long ctime;
     private long mtime;
     
     private long streamId;
@@ -69,7 +70,8 @@ public class HlsLiveStream {
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
     		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
         
-    	this.mtime = System.currentTimeMillis();
+    	this.ctime = System.currentTimeMillis();
+    	this.mtime = ctime;
     	
     	this.streamId = streamId;
     	this.streamType = streamType;
@@ -230,7 +232,11 @@ public class HlsLiveStream {
         return mtime;
     }
 
-    public long getStreamId() {
+    public long getCtime() {
+		return ctime;
+	}
+
+	public long getStreamId() {
         return streamId;
     }
     

@@ -86,7 +86,7 @@ public class UdpServerChannelHandler extends SimpleChannelHandler {
 			
 		} catch (V5PacketErrorException e1) {
 			
-			LOGGER.warn("packet decode err:", e);
+			LOGGER.warn("packet decode err:", e1);
 			
 			byte[] response = new byte[2]; 
 			response[0] = 0x11;

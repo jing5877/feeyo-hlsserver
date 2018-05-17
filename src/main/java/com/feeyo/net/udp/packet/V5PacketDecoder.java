@@ -85,7 +85,7 @@ public class V5PacketDecoder {
 		// 包头
 		int idx = 0;
 		if ( buff[idx] != 89 || buff[idx+1] != 89 ) {
-			throw new V5PacketErrorException(" packet head error");
+			throw new V5PacketErrorException(" packet head error ", buff);
 		}
 
 		idx += 2;
@@ -116,13 +116,14 @@ public class V5PacketDecoder {
 		idx += length;
 		
 		// 包尾
-		long crc = ByteUtil.bytesToLong(buff[idx], buff[idx+1], buff[idx+2], buff[idx+3], buff[idx+4], buff[idx+5], buff[idx+6], buff[idx+7]);
+		long crc = ByteUtil.bytesToLong(buff[idx], buff[idx+1], buff[idx+2], buff[idx+3], 
+				buff[idx+4], buff[idx+5], buff[idx+6], buff[idx+7]);
 		
 		// 做一下CRC 校验
 		CRC32 oldCrc32 = new CRC32();
 		oldCrc32.update( packetData, 0, packetData.length);
 		if ( crc != oldCrc32.getValue() ) {
-			throw new V5PacketErrorException("packet crc32 error");
+			throw new V5PacketErrorException("packet crc32 error, crc=" + crc + ", but calc crc="+ oldCrc32.getValue(),  buff);
 		}
 		
 		//if ( LOGGER.isDebugEnabled() ) {

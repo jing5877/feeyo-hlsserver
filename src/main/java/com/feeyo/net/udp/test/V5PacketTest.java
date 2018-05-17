@@ -18,7 +18,7 @@ public class V5PacketTest {
 		// 18
 		V5PacketIdGenerator idGenerator = new V5PacketIdGenerator();
 		String text = "Hello world ccccccccccccccccccccccc3333333344444ccccccccccc! zzzzzzz@";
-		int MTU = 28;
+		int MTU = 50;
 		
 		// 原始包
 		int packetSender = 12;

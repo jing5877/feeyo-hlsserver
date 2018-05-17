@@ -261,7 +261,8 @@ public class UdpClientTest extends UdpClientChannelHandler {
 	public static void main(String[] args) {
 		
 		UdpClientTest clientTest = new UdpClientTest();
-		clientTest.write(HlsLiveStreamType.AAC_H264_MIXED, 44100F, 16, 2, 25);		
+		//clientTest.write(HlsLiveStreamType.AAC_H264_MIXED, 44100F, 16, 2, 25);		
+		clientTest.write(HlsLiveStreamType.AAC, 44100F, 16, 2, 25);		
 	}
 	
 	

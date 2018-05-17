@@ -47,7 +47,6 @@ public class V5PacketEncoder {
 			CRC32 crc32 = new CRC32();
 			crc32.update( packetData, 0, packetData.length);
 			long crc = crc32.getValue();
-			
 	
 			int packetLength = data.length;
 			int packetOffset =  i * maxLen;

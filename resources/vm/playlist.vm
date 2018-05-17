@@ -58,16 +58,16 @@
 								</span>
 							</div>
 							
-							<div style="float:left; padding-left:2px; padding-top:16px; font-size:12px;">
-								<table>
+							<div style="float:left; padding-left:2px; padding-top:16px;">
+								<table style="font-size:12px;">
 									<tr>
-										<td>
+										<td style="position:absolute; left:1px;  top: 30px; padding:2px; margin:0px; right:0px; border-top:1px solid #ccc;">
 											count: ${item.rawCount}
 										</td>
 									</tr>
 									
 									<tr>
-										<td>
+										<td style="position:absolute; left:0px; top:50px; padding:2px; margin:0px; right:0px; border-top:1px solid #ccc;">
 											#if($item.streamType < 10) 
 												audio sample=${item.sampleRate} / ${item.sampleSizeInBits} / ${item.channels}
 											#else 
@@ -77,9 +77,9 @@
 									</tr>
 									
 									<tr>
-										<td class="text-right" style="position:absolute; bottom:0px; padding:0px; margin:0px; right:0px; border-top:1px solid #ccc;"> 
+										<td class="text-right" style="position:absolute; bottom:0px; padding:0px; margin:0px; right:0px;"> 
 											 <label class="timestamp">
-												 $!item.mtime
+												  $!date.format('yyyy-MM-dd HH:mm:ss ',$!itme.mtime)
 											 </label>
 										</td>
 									<tr>
@@ -115,28 +115,23 @@
 	            return ymdhis;
 	        }
 	        
-	        var timeProcess = function() {
-		        var current = Date.parse(new Date())  / 1000;
-			
-		        var panels = $(".box");		        
-		        panels.each(function(i) {
-		        	var panel = $(panels[i]);
-		        	
-		        	var pem = panel.find('.timestamp');
-		        	pem.each(function(j){
-		        		var p = $(pem[j]);
-		        		if(!isNaN(p.text())){
-		        		
-		        			var timestamp = parseInt(p.text());
-		        			p.html(unixToDate(timestamp));
-		        			
-		        		}
-		        	});
-		        });
-		        
-	        }
 	        
-	        timeProcess();
+	        var current = Date.parse(new Date())  / 1000;
+	        var panels = $(".box");		        
+	        panels.each(function(i) {
+	        	var panel = $(panels[i]);
+	        	
+	        	var pem = panel.find('.timestamp111');
+	        	pem.each(function(j){
+	        		var p = $(pem[j]);
+	        		if(!isNaN(p.text())){
+	        		
+	        			var timestamp = parseInt(p.text());
+	        			p.html(unixToDate(timestamp));
+	        			
+	        		}
+	        	});
+	        });
 	
 		});
 		
