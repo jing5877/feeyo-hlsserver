@@ -79,7 +79,7 @@
 									<tr>
 										<td class="text-right" style="position:absolute; bottom:0px; padding:0px; margin:0px; right:0px; border-top:1px solid #ccc;"> 
 											 <label class="timestamp">
-												  $!symbol.format('yyyy-MM-dd HH:mm:ss ',$!item.mtime)
+												  $!dateSymbol.format('yyyy-MM-dd HH:mm:ss ',$!item.mtime)
 											 </label>
 										</td>
 									<tr>

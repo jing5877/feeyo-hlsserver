@@ -11,6 +11,8 @@ import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.tools.generic.DateTool;
+import org.apache.velocity.tools.generic.MathTool;
+import org.apache.velocity.tools.generic.NumberTool;
 
 import com.feeyo.HlsCtx;
 
@@ -43,10 +45,14 @@ public class VelocityBuilder {
 
     private void mergeTemplate(String name, String encoding, Map<String, Object> model, StringWriter writer) 
     		throws ResourceNotFoundException, ParseErrorException, Exception {
+    	
+        VelocityContext velocityContext = new VelocityContext(model);
+        velocityContext.put("dateSymbol", new DateTool());
+        velocityContext.put("numberSymbol", new NumberTool());
+        velocityContext.put("mathSymbol", new MathTool());
+        
         Template template = engine().getTemplate(name, encoding);
-        VelocityContext ctx = new VelocityContext(model);
-        ctx.put("symbol", new DateTool());
-        template.merge(ctx, writer);
+        template.merge(velocityContext, writer);
     }
 
 
