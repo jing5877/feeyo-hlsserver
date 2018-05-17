@@ -270,11 +270,18 @@ public class HlsLiveStream {
 		this.aliasNames = aliasNames;
 	}
 
-
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
     	
-    	this.mtime = System.currentTimeMillis();
+		// idle, reset
+    	long now = System.currentTimeMillis();
+    	if ( mtime > 0 && ((now - mtime) > (1000 * 60)) ) {
+    		this.ctime = now;
+    		this.mtime = ctime;
+    		this.rawCount = 0;
+    	}
+    	
+    	this.mtime = now;
     	this.rawCount++;
 
     	if( tsSegmenter != null) {
