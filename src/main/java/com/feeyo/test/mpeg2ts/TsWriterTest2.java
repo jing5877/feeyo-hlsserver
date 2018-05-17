@@ -1,4 +1,4 @@
-package com.feeyo.mpeg2ts.test;
+package com.feeyo.test.mpeg2ts;
 
 import java.io.File;
 import java.io.FileOutputStream;
