@@ -17,7 +17,7 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
 
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.util.velocity.VelocityBuilder;
-public class HlsLivePlayListHandler implements IRequestHandler {
+public class HlsStreamsHandler implements IRequestHandler {
 	
 	@Override
 	public Type getType() {
@@ -37,7 +37,7 @@ public class HlsLivePlayListHandler implements IRequestHandler {
 		
 		model.put("streams", HlsLiveStreamMagr.INSTANCE().getAllLiveStream()); 
 		
-		String htmlText = velocityBuilder.generate("playlist.vm", "UTF8", model);
+		String htmlText = velocityBuilder.generate("streams.vm", "UTF8", model);
 		
 		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
 		response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, htmlText.length());
