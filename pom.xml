@@ -74,9 +74,9 @@
 		</dependency>
 		
 		<dependency>
-		    <groupId>org.apache.velocity.tools</groupId>
+		    <groupId>org.apache.velocity</groupId>
 		    <artifactId>velocity-tools</artifactId>
-		    <version>2.0-alpha1</version>
+		    <version>2.0</version>
 		</dependency>
 
   </dependencies>

@@ -50,7 +50,7 @@ public class VelocityBuilder {
         velocityContext.put("dateSymbol", new DateTool());
         velocityContext.put("numberSymbol", new NumberTool());
         velocityContext.put("mathSymbol", new MathTool());
-        
+
         Template template = engine().getTemplate(name, encoding);
         template.merge(velocityContext, writer);
     }

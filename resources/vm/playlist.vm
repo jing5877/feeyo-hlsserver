@@ -62,7 +62,8 @@
 								<table style="font-size:12px;">
 									<tr>
 										<td style="position:absolute; left:1px;  top: 30px; padding:2px; margin:0px; right:0px; ">
-											count: ${item.rawCount}
+											count: ${item.rawCount}，
+											duration: $numberSymbol.format('#0.00', $!mathSymbol.div( $!mathSymbol.sub($!item.mtime, $!item.ctime), 60000) )
 										</td>
 									</tr>
 									
