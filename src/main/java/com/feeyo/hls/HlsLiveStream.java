@@ -301,7 +301,7 @@ public class HlsLiveStream {
     			rawData = pcmuDecoder.process( rawData );
 				
 				if( volumeCtl == null ) {
-					volumeCtl = new VolumeControl(sampleRate, frameLength, isNoiseReduction);
+					volumeCtl = new VolumeControl((int)sampleRate, frameLength, isNoiseReduction);
 				}
 				rawData = volumeCtl.autoControlVolume( rawData );
 			}

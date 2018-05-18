@@ -13,11 +13,11 @@ public class VolumeControl {
 	private volatile boolean isNoiseReduction = false;
 	private NoiseSuppress noiseSupress;
 	
-	public VolumeControl(float sampleRate, int frameSize, boolean isNoiseReduction) {
+	public VolumeControl(int sampleRate, int frameSize, boolean isNoiseReduction) {
 		
 		this.ctime = System.currentTimeMillis();
 		this.isNoiseReduction = isNoiseReduction;
-		this.noiseSupress = new NoiseSuppress((int)sampleRate, frameSize);
+		this.noiseSupress = new NoiseSuppress(sampleRate, frameSize);
 	}
 	
 	public byte[] autoControlVolume(byte[] data) {

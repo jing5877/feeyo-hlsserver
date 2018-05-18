@@ -4,61 +4,62 @@ import com.feeyo.audio.volume.VolumeUtil;
 
 public class NoiseSuppress {
 	
-	private NoiseReduction inHandle;
+	//
+	private NoiseReduction noiseReduction;
 	
-	public NoiseSuppress(int inSampleRate, int inFrameSize) {
-		inHandle = createNoiseReduction(inSampleRate, inFrameSize);
+	public NoiseSuppress(int sampleRate, int frameSize) {
+		noiseReduction = createNoiseReduction(sampleRate, frameSize);
 	}
 	
 	public byte[] noiseReductionProcess(byte[] pcm) {
 		
 		int i;
-		inHandle.adapt_count++;
+		noiseReduction.adapt_count++;
 		short[] ioPcm = VolumeUtil.byteArray2shortArray(pcm);
 		frequencyAnalysis(ioPcm);
 		noiseEstimation();
 		audioEnhancement();
 
-		FftAlgorithm.spx_ifft(inHandle.fft_table, inHandle.ft, inHandle.outpcm);
+		FftAlgorithm.spx_ifft(noiseReduction.fft_table, noiseReduction.ft, noiseReduction.outpcm);
 		// overlap and add
-		for (i = 0; i < inHandle.frame_size; i++) {
-			ioPcm[i] = (short) (inHandle.outbuf[i] + inHandle.outpcm[i]);
+		for (i = 0; i < noiseReduction.frame_size; i++) {
+			ioPcm[i] = (short) (noiseReduction.outbuf[i] + noiseReduction.outpcm[i]);
 		}
-		for (i = 0; i < inHandle.frame_size; i++)
-			inHandle.outbuf[i] = inHandle.outpcm[inHandle.frame_size + i] * inHandle.win_gain;
+		for (i = 0; i < noiseReduction.frame_size; i++)
+			noiseReduction.outbuf[i] = noiseReduction.outpcm[noiseReduction.frame_size + i] * noiseReduction.win_gain;
 
 		// limit value of adapt_count
-		if (inHandle.adapt_count > 16000)
-			inHandle.adapt_count = 2;
+		if (noiseReduction.adapt_count > 16000)
+			noiseReduction.adapt_count = 2;
 		return VolumeUtil.shortArray2byteArray(ioPcm);
 	}
 
 	private void audioEnhancement() {
 		
 		int i;
-		inHandle.ft[0] = 0; // ignore DC component
+		noiseReduction.ft[0] = 0; // ignore DC component
 
-		for (i = 1; i < inHandle.ps_size; i++) {
+		for (i = 1; i < noiseReduction.ps_size; i++) {
 			float gain;
 			float offset;
 			float priorSNR, postSNR;
 			float alpha = 0;
 			// compute priori SNR and post SNR
-			postSNR = inHandle.sold[i] / inHandle.noise[i];
+			postSNR = noiseReduction.sold[i] / noiseReduction.noise[i];
 			priorSNR = postSNR - 1;
-			offset = (priorSNR - inHandle.prior[i]) / postSNR;
+			offset = (priorSNR - noiseReduction.prior[i]) / postSNR;
 			alpha = 1 / (1 + offset * offset);
 
-			inHandle.prior[i] = (float) (alpha * (4.0f / Math.PI) * inHandle.prior[i] + (1 - alpha) * Math.max(priorSNR, 0));
+			noiseReduction.prior[i] = (float) (alpha * (4.0f / Math.PI) * noiseReduction.prior[i] + (1 - alpha) * Math.max(priorSNR, 0));
 			// compute weiner gain
-			gain = inHandle.prior[i] / (inHandle.prior[i] + 1);
+			gain = noiseReduction.prior[i] / (noiseReduction.prior[i] + 1);
 			
-			inHandle.prior[i] = priorSNR;
-			inHandle.post[i] = postSNR;
+			noiseReduction.prior[i] = priorSNR;
+			noiseReduction.post[i] = postSNR;
 
 			// apply gain
-			inHandle.ft[2 * i - 1] *= gain;
-			inHandle.ft[2 * i] *= gain;
+			noiseReduction.ft[2 * i - 1] *= gain;
+			noiseReduction.ft[2 * i] *= gain;
 
 		}
 		
@@ -70,29 +71,29 @@ public class NoiseSuppress {
 		float gamma = 0.998f;
 		int i;
 
-		if (1 == inHandle.adapt_count) {
+		if (1 == noiseReduction.adapt_count) {
 
 			// assume the first frame is noise
-			for (i = 0; i < inHandle.ps_size; i++) {
-				inHandle.sold[i] = inHandle.ps[i];
-				inHandle.smin[i] = inHandle.ps[i];
-				inHandle.noise[i] = inHandle.ps[i];
-				inHandle.post[i] = 1.0F;
-				inHandle.prior[i] = 0;
+			for (i = 0; i < noiseReduction.ps_size; i++) {
+				noiseReduction.sold[i] = noiseReduction.ps[i];
+				noiseReduction.smin[i] = noiseReduction.ps[i];
+				noiseReduction.noise[i] = noiseReduction.ps[i];
+				noiseReduction.post[i] = 1.0F;
+				noiseReduction.prior[i] = 0;
 			}
 		}
 
-		for (i = 0; i < inHandle.ps_size; i++) {
+		for (i = 0; i < noiseReduction.ps_size; i++) {
 			float Sp;
 			// smooth power spectrum
-			Sp = 0.2f * inHandle.sold[i] + 0.8f * inHandle.ps[i];
+			Sp = 0.2f * noiseReduction.sold[i] + 0.8f * noiseReduction.ps[i];
 			// update noise
-			if (inHandle.sold[i] <= Sp)
-				inHandle.noise[i] = gamma * inHandle.noise[i] + (1.0f - gamma) / (1.0f - beta) * (Sp - beta * inHandle.sold[i]);
+			if (noiseReduction.sold[i] <= Sp)
+				noiseReduction.noise[i] = gamma * noiseReduction.noise[i] + (1.0f - gamma) / (1.0f - beta) * (Sp - beta * noiseReduction.sold[i]);
 			else
-				inHandle.noise[i] = Sp;
+				noiseReduction.noise[i] = Sp;
 
-			inHandle.sold[i] = Sp;
+			noiseReduction.sold[i] = Sp;
 		}
 
 	}
@@ -100,23 +101,23 @@ public class NoiseSuppress {
 	private void frequencyAnalysis(short[] x) {
 
 		int i;
-		removeDC(x, inHandle.ps_size);
+		removeDC(x, noiseReduction.ps_size);
 
-		for (i = 0; i < inHandle.ps_size; i++)
-			inHandle.frame[i] = inHandle.inbuf[i];
-		for (i = 0; i < inHandle.ps_size; i++)
-			inHandle.frame[i + inHandle.ps_size] = x[i];
-		for (i = 0; i < inHandle.ps_size; i++)
-			inHandle.inbuf[i] = x[i];
+		for (i = 0; i < noiseReduction.ps_size; i++)
+			noiseReduction.frame[i] = noiseReduction.inbuf[i];
+		for (i = 0; i < noiseReduction.ps_size; i++)
+			noiseReduction.frame[i + noiseReduction.ps_size] = x[i];
+		for (i = 0; i < noiseReduction.ps_size; i++)
+			noiseReduction.inbuf[i] = x[i];
 
-		for (i = 0; i < 2 * inHandle.ps_size; i++)
-			inHandle.frame[i] *= inHandle.window[i];
+		for (i = 0; i < 2 * noiseReduction.ps_size; i++)
+			noiseReduction.frame[i] *= noiseReduction.window[i];
 
-		FftAlgorithm.spx_fft(inHandle.fft_table, inHandle.frame, inHandle.ft);
+		FftAlgorithm.spx_fft(noiseReduction.fft_table, noiseReduction.frame, noiseReduction.ft);
 
-		inHandle.ps[0] = inHandle.ft[0] * inHandle.ft[0];
-		for (i = 1; i < inHandle.ps_size; i++)
-			inHandle.ps[i] = inHandle.ft[2 * i - 1] * inHandle.ft[2 * i - 1] + inHandle.ft[2 * i] * inHandle.ft[2 * i];
+		noiseReduction.ps[0] = noiseReduction.ft[0] * noiseReduction.ft[0];
+		for (i = 1; i < noiseReduction.ps_size; i++)
+			noiseReduction.ps[i] = noiseReduction.ft[2 * i - 1] * noiseReduction.ft[2 * i - 1] + noiseReduction.ft[2 * i] * noiseReduction.ft[2 * i];
 
 	}
 
