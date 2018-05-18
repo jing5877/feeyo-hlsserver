@@ -15,8 +15,6 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.feeyo.audio.codec.Decoder;
-import com.feeyo.audio.codec.PcmuDecoder;
 import com.feeyo.net.udp.packet.V5Packet;
 import com.feeyo.net.udp.packet.V5PacketType;
 import com.feeyo.util.DefaultThreadFactory;
@@ -45,8 +43,6 @@ public class HlsLiveStreamMagr {
     // streamId -> live stream
     private static Map<Long, HlsLiveStream> streamIdToLiveStreamCache = new ConcurrentHashMap<Long, HlsLiveStream>();
     
-    // streamId -> volume control
-    private static Map<Long, VolumeControl> streamIdToVolumeControlCache = new ConcurrentHashMap<Long, VolumeControl>();
     
     private HlsLiveStreamMagr() {}
     
@@ -91,7 +87,6 @@ public class HlsLiveStreamMagr {
 	                        	if(streamId == iter.next())
 	                        		iter.remove();
 	                        }
-	                        streamIdToVolumeControlCache.remove(streamId);     
 	                        
 	                        //
 	                        liveStream.close();
@@ -186,8 +181,6 @@ public class HlsLiveStreamMagr {
 			liveStream.close();
 			liveStream = null;
 		}
-		
-		streamIdToVolumeControlCache.remove(streamId);
     }
     
     public void closeAllHlsLiveStream() {
@@ -204,8 +197,6 @@ public class HlsLiveStreamMagr {
     		}
     	}
     	
-    	streamIdToVolumeControlCache.clear();
-    	
     }
     
 	public void handleStream(final V5Packet packet) {
@@ -214,13 +205,13 @@ public class HlsLiveStreamMagr {
 		try {		
 			threadPoolExecutor.execute(new Runnable() {
 	
-				Decoder pcmuDecoder = new PcmuDecoder();
-	
 				@Override
 				public void run() {
 					long packetSender = packet.getPacketSender();
 					byte packetType = packet.getPacketType();
+					byte[] packetData = packet.getPacketData();
 					byte[] packetReserved = packet.getPacketReserved();
+					int packetLength = packet.getPacketLength();
 	
 					HlsLiveStream liveStream = streamIdToLiveStreamCache.get(packetSender);
 					if (liveStream != null) {
@@ -244,20 +235,8 @@ public class HlsLiveStreamMagr {
 						}
 	
 						if ( isPass ) {
-							byte[] packetData = packet.getPacketData();
-							byte[] reserved = packet.getPacketReserved();
-							if (V5PacketType.PCM_STREAM == packet.getPacketType()) {
-								packetData = pcmuDecoder.process(packet.getPacketData());
-								
-								VolumeControl volumeCtl = streamIdToVolumeControlCache.get(packetSender);
-								if( volumeCtl == null ) {
-									volumeCtl = new VolumeControl(liveStream.getSampleRate(),packet.getPacketLength());
-									streamIdToVolumeControlCache.put( packetSender, volumeCtl);
-								}
-								
-								packetData = volumeCtl.autoControlVolume(packetData);
-							}
-							liveStream.addAvStream(packetType, packetReserved, packetData, reserved);
+							
+							liveStream.addAvStream(packetType, packetData, packetReserved, packetLength);
 							
 						} else {
 							LOGGER.warn("livestream no pass err: streamId={}, streamType={}, packetType={}", liveStream.getStreamId(),

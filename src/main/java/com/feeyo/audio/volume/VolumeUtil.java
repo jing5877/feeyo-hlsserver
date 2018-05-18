@@ -1,4 +1,4 @@
-package com.feeyo.util;
+package com.feeyo.audio.volume;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

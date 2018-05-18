@@ -1,6 +1,6 @@
 package com.feeyo.audio.noise;
 
-import com.feeyo.util.VolumeUtil;
+import com.feeyo.audio.volume.VolumeUtil;
 
 public class NoiseSuppress {
 	

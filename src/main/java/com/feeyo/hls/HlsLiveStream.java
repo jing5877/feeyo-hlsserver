@@ -12,6 +12,9 @@ import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.feeyo.audio.codec.Decoder;
+import com.feeyo.audio.codec.PcmuDecoder;
+import com.feeyo.audio.volume.VolumeControl;
 import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.hls.ts.TsSegment;
 import com.feeyo.hls.ts.segmenter.AacH264MixedTsSegmenter;
@@ -20,6 +23,7 @@ import com.feeyo.hls.ts.segmenter.AacTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AbstractTsSegmenter;
 import com.feeyo.hls.ts.segmenter.H264TranscodingTsSegmenter;
 import com.feeyo.hls.ts.segmenter.H264TsSegmenter;
+import com.feeyo.net.udp.packet.V5PacketType;
 
 
 /**
@@ -37,6 +41,9 @@ public class HlsLiveStream {
 	
 	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 1;			
 	private static final int TS_TIMEOUT_MS = SESSION_TIMEOUT_MS * 5;			
+	
+	// pcmu decode
+	private static Decoder pcmuDecoder = new PcmuDecoder();
     
     // id -> client session
     private Map<String, HlsClientSession> clientSessions = new ConcurrentHashMap<String, HlsClientSession>();
@@ -66,6 +73,9 @@ public class HlsLiveStream {
     //
     private Map<Long, TsSegment> tsSegments = new ConcurrentHashMap<Long, TsSegment>(); 		
     private AtomicLong tsIndexGen = new AtomicLong(4);										//  ads 1,2,3   normal 4...  
+    
+    private VolumeControl volumeCtl = null;
+    private boolean isNoiseReduction = true;
 
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
     		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
@@ -271,7 +281,7 @@ public class HlsLiveStream {
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData, byte[] reserved) {
+	public synchronized void addAvStream(byte rawType, byte[] rawData, byte[] rawReserved, int frameLength) {
     	
 		// idle, reset
     	long now = System.currentTimeMillis();
@@ -285,7 +295,18 @@ public class HlsLiveStream {
     	this.rawCount++;
 
     	if( tsSegmenter != null) {
-	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, reserved );
+    		
+    		// PCM transcode & Audio noise reduce / vol gain
+    		if (V5PacketType.PCM_STREAM == rawType) {
+    			rawData = pcmuDecoder.process( rawData );
+				
+				if( volumeCtl == null ) {
+					volumeCtl = new VolumeControl(sampleRate, frameLength, isNoiseReduction);
+				}
+				rawData = volumeCtl.autoControlVolume( rawData );
+			}
+    		
+	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, rawReserved );
 	        if ( tsData != null) {
 	        	
 	        	long tsIndex = tsIndexGen.getAndIncrement();
