@@ -4,8 +4,9 @@ import com.feeyo.audio.noise.NoiseSuppress;
 
 public class VolumeControl {
 	
+	// 最大的梯度分贝
 	private double maxGradientDb = -999;
-	private double initGradientDb = -999;
+	private double newMaxGradientDb = maxGradientDb;
 	
 	private long ctime = 0;
 	
@@ -25,16 +26,20 @@ public class VolumeControl {
 		double db = VolumeUtil.calMaxVolumeDbByAbs(shorts);
 		long now = System.currentTimeMillis();
 		
+		// lookup max gradient db
 		if ( now - ctime > (5 * 60 * 1000) ) {
 			
-			if (initGradientDb != -999) {
-				maxGradientDb = initGradientDb;
-				initGradientDb = -999;
+			if (newMaxGradientDb != -999) {
+				maxGradientDb = newMaxGradientDb;
+				
+				//reset
+				newMaxGradientDb = -999;
 			}
-			maxGradientDb = maxGradientDb > db ? maxGradientDb : db;
-			
+			ctime = now;
+			maxGradientDb = Math.max( maxGradientDb, db );
+
 		} else {
-			initGradientDb = initGradientDb > db ? initGradientDb : db;
+			newMaxGradientDb = Math.max( newMaxGradientDb, db );
 		}
 		
 		// 增益
@@ -45,9 +50,7 @@ public class VolumeControl {
 		// 降噪
 		if ( isNoiseReduction == true )
 			data = noiseSupress.noiseReductionProcess(data);
-		
-		if(now - ctime > (30 * 60 * 1000)) 
-			ctime = now;
+
 		return data;
 	}
 	
