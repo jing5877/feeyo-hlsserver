@@ -1,0 +1,92 @@
+<html>
+	<head>
+	    <link rel='stylesheet' type='text/css' href='/static/css/hls.css' />
+	    
+	    <script src='/static/jquery/js/jquery-1.9.1.min.js' ></script>
+		<script src='/static/feeyo/js/md5.js' ></script>
+		
+	    <title>LOGIN</title>
+	</head>
+	<body>
+	
+	    #include("/include/navbar.html")
+	
+	    <div class="container" style="padding-top:1px;">
+	    
+	    	<div class="panel panel-default">
+	    		
+	    		<div class="panel-heading">
+	    			<h3 class="panel-title"> Login </h3>
+	    				@powerby variflight
+	    		</div>
+	    	
+	    		<div class="panel-body">
+	    		
+	    		 	<table class="table">			            
+			            <tbody>
+			                <tr>
+			                    <td>Username</td>
+			                    <td>  <input type="text" placeholder="" name="loginName" value="" class="form-control">	 </td>
+			                </tr>
+			                <tr>
+			                    <td>Password</td>
+			                    <td> <input type="password" placeholder="" name="loginPassword" value="" class="form-control"> </td>
+			                </tr>
+			                <tr>
+			                    <td></td>
+			                    <td> <button class="login-btn" >登录</button> </td>
+			                </tr>
+			            </tbody>
+			        </table>	 
+			           			
+	    		</div>	
+	    		    		
+	    	</div>
+	    	
+	    </div>
+	    
+	</body>
+	
+	#[[
+	<script type="text/javascript">
+
+	
+		$(function(){
+			
+			$(".login-btn").click(function(){
+				login();
+			});
+			
+			function login() {
+	
+				var loginName = $("input[name='loginName']").val();
+				var loginPassword = $("input[name='loginPassword']").val();
+				
+				//MD5
+				loginPassword = hex_md5(loginPassword);
+				
+		        $.ajax({
+		            type: "GET",
+		            url: "/auth",
+		            data: {user: loginName, pwd: loginPassword},
+		            contentType: "application/text; charset=utf-8",
+		            dataType: "html",
+		            success: function (response) {		
+		                            
+		                if ( response.code == 200 ) {
+		                	window.location.href = "/";
+		                	
+		                } else {
+		                	alert("login failure ...");
+		                }
+		            },
+		            failure: function (response) {		            	
+		                console.log(response.data);
+		            }
+		        });				
+			};
+			
+		});
+	</script>
+	]]#
+</html>
