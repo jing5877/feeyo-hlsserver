@@ -11,7 +11,7 @@
 	
 	    #include("/include/navbar.html")
 	
-	    <div class="container" style="padding-top:1px;">
+	    <div class="container" style="padding-top:1px; left: 30%; width: 40%;">
 	    
 	    	<div class="panel panel-default">
 	    		
