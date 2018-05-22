@@ -131,4 +131,14 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 		return null;
 	}
 	
+	@Override
+    public String toString() {
+    	StringBuffer sbf = new StringBuffer();
+    	sbf.append("ptsBase = ").append(ptsBase).append(", ");
+    	sbf.append("pts = ").append(pts).append(", ");
+    	sbf.append("dts = ").append(dts).append(", ");
+    	sbf.append("bufPtr = ").append(aacBufPtr).append(", ");
+    	sbf.append("normal-Status = ").append(pts == dts);
+		return sbf.toString();
+    }
 }

@@ -330,7 +330,7 @@ public class HlsLiveStream {
 	            TsSegment tsSegment = new TsSegment(  tsIndex +".ts", tsData, tsSegmenter.getTsSegTime(), false);
 	            tsSegments.put(tsIndex, tsSegment);
 	            
-	            LOGGER.info("##streamId={},  add ts {} ", streamId, tsSegment);
+	            LOGGER.info("##streamId={},  add ts {}, tsSegmenter {}", streamId, tsSegment, tsSegmenter);
 	        }
     	}
     }
