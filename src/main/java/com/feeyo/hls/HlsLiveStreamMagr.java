@@ -119,6 +119,11 @@ public class HlsLiveStreamMagr {
         }
     }
     
+    
+    public HlsLiveStream getHlsLiveStreamById(Long id) {
+    	return streamIdToLiveStreamCache.get( id );
+    }
+    
     public HlsLiveStream getHlsLiveStreamByAlias(String alias) {
     	Long streamId = aliasToStreamIdCache.get(alias);
     	if ( streamId == null ) 
@@ -132,6 +137,18 @@ public class HlsLiveStreamMagr {
     
     public Collection<HlsLiveStream> getAllLiveStream(){
     	return streamIdToLiveStreamCache.values();
+    }
+    
+    
+    
+    public boolean updateHlsLiveStreamNoiseReductionById(long streamId, boolean isNoiseReduction) {
+    	
+    	HlsLiveStream liveStream = streamIdToLiveStreamCache.get( streamId );
+    	if ( liveStream != null ) {
+    		liveStream.setNoiseReduction(isNoiseReduction);
+    		return true;
+    	}
+    	return false;
     }
     
     public boolean updateHlsLiveStreamAliasNamesById(long streamId, List<String> newAliasNames) {

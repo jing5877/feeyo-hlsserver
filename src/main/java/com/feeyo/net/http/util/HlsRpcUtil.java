@@ -16,13 +16,15 @@ import com.alibaba.fastjson.JSONObject;
 public class HlsRpcUtil {
 	
 	// Code define
-	public static final int START_CODE 			= 1;
-	public static final int CLOSE_CODE 			= 2;
-	public static final int CLOSE_ALL_CODE 		= 3;
+	public static final int START_CODE 						= 1;
+	public static final int CLOSE_CODE 						= 2;
+	public static final int CLOSE_ALL_CODE 					= 3;
 	
-	public static final int UPD_ALIAS_CODE 		= 11;
-	public static final int UPD_ADS_CODE 		= 12;
+	public static final int UPD_ALIAS_CODE 					= 11;
+	public static final int UPD_ADS_CODE 					= 12;
+	public static final int UPD_NOISE_REDUCTION_CODE 		= 13;
 
+	
 	private static int timeout = 5;
 	private static RequestConfig config = RequestConfig.custom()
 			.setConnectTimeout(timeout * 1000)
@@ -110,6 +112,14 @@ public class HlsRpcUtil {
 		return post(uri, jsonObject);
 	}
 	
+	public boolean updateNioseReduction(String uri, long streamId, boolean isNoiseReduction) {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put("code", UPD_NOISE_REDUCTION_CODE);
+		jsonObject.put("streamId", streamId);
+		jsonObject.put("isNoiseReduction", isNoiseReduction);
+		return post(uri, jsonObject);
+	}
+	
 	public boolean updateAds(String uri, boolean isHasAds) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("code", UPD_ADS_CODE);
@@ -117,7 +127,5 @@ public class HlsRpcUtil {
 		
 		return post(uri, jsonObject);
 	}
-	
-
 
 }

@@ -133,6 +133,14 @@ public class HlsManageHandler implements IRequestHandler {
 				reponseTxt = "OK";
 			}
 			break;
+		case HlsRpcUtil.UPD_NOISE_REDUCTION_CODE:
+			Long streamId = q.getLong("streamId");
+			if ( streamId != null ) {
+				Boolean isNoiseReduction = q.getBoolean("isNoiseReduction");
+				HlsLiveStreamMagr.INSTANCE().updateHlsLiveStreamNoiseReductionById( streamId,  isNoiseReduction );
+				reponseTxt = "OK";
+			}
+			break;
 		}
 		
 		//

@@ -66,8 +66,9 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		registerHandler(HttpMethod.GET, "/hls/vod/*/*", new HlsVodHandler());
 		
 		//
-		registerHandler(HttpMethod.GET, "/hls/streams", new HlsStreamsHandler());
 		registerHandler(HttpMethod.POST, "/hls/manage", new HlsManageHandler());
+		registerHandler(HttpMethod.GET, "/hls/streams", new HlsStreamsHandler());
+
 
 		// 流控
 		registerFilter(new HlsTrafficFilter(), Type.HLS);
@@ -157,7 +158,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 
 				IRequestHandler.Type type = requestHandler.getType();	
 				if ( type == IRequestHandler.Type.VM ) {
-					sendRedirect(ctx, "/v1/view/login");
+					sendRedirect(ctx, "/login");
 					
 				} else {
 					HttpResponse response = buildDefaultResponse("", HttpResponseStatus.UNAUTHORIZED);

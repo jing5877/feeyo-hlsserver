@@ -10,20 +10,24 @@ public class VolumeControl {
 	
 	private long ctime = 0;
 	
-	private volatile boolean isNoiseReduction = false;
 	private NoiseSuppress noiseSupress;
 	
-	public VolumeControl(int sampleRate, int frameSize, boolean isNoiseReduction) {
+	public VolumeControl(int sampleRate, int frameSize) {
 		
 		this.ctime = System.currentTimeMillis();
-		this.isNoiseReduction = isNoiseReduction;
 		this.noiseSupress = new NoiseSuppress(sampleRate, frameSize);
 	}
 	
-	public byte[] autoControlVolume(byte[] data) {
+	public byte[] noise(byte[] data) {
+		// 降噪
+		data = noiseSupress.noiseReductionProcess(data);
+		return data;
+	}
+	
+	public byte[] gain(byte[] data) {
 		
-		short[] shorts = VolumeUtil.byteArray2shortArray(data);
-		double db = VolumeUtil.calMaxVolumeDbByAbs(shorts);
+		short[] pcm = VolumeUtil.byteArray2shortArray(data);
+		double db = VolumeUtil.calMaxVolumeDbByAbs( pcm );
 		long now = System.currentTimeMillis();
 		
 		// lookup max gradient db
@@ -44,12 +48,24 @@ public class VolumeControl {
 		
 		// 增益
 		if (maxGradientDb != -999 && maxGradientDb < -8) {
-			data = autoGain(shorts, getGradientDb() - maxGradientDb);
+			
+			// 音量自动增益
+			double inc = ( getGradientDb() - maxGradientDb );
+			double multiplier = Math.pow(10, inc / 20);
+			
+			for (int i = 0; i < pcm.length; i++) {
+				short pcmval = (short) (multiplier * pcm[i]);
+				if (pcmval < 32767 && pcmval > -32768) {
+					pcm[i] = pcmval;
+				} else if (pcmval > 32767) {
+					pcm[i] = 32767;
+				} else if (pcmval < -32768) {
+					pcm[i] = -32768;
+				}
+			}
+			data = VolumeUtil.shortArray2byteArray(pcm);
 		}
 		
-		// 降噪
-		if ( isNoiseReduction == true )
-			data = noiseSupress.noiseReductionProcess(data);
 
 		return data;
 	}
@@ -70,24 +86,6 @@ public class VolumeControl {
 		} else {
 			return -6;
 		}
-	}
-
-	// 音量自动增益
-	private byte[] autoGain(short[] pcm, double inc) {
-		
-		double multiplier = Math.pow(10, inc / 20);
-		
-		for (int i = 0; i < pcm.length; i++) {
-			short pcmval = (short) (multiplier * pcm[i]);
-			if (pcmval < 32767 && pcmval > -32768) {
-				pcm[i] = pcmval;
-			} else if (pcmval > 32767) {
-				pcm[i] = 32767;
-			} else if (pcmval < -32768) {
-				pcm[i] = -32768;
-			}
-		}
-		return VolumeUtil.shortArray2byteArray(pcm);
 	}
 	
 }

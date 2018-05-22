@@ -75,7 +75,7 @@ public class HlsLiveStream {
     private AtomicLong tsIndexGen = new AtomicLong(4);										//  ads 1,2,3   normal 4...  
     
     private VolumeControl volumeCtl = null;
-    private boolean isNoiseReduction = true;
+    private volatile boolean isNoiseReduction = true;
 
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
     		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
@@ -280,16 +280,26 @@ public class HlsLiveStream {
 		this.aliasNames = aliasNames;
 	}
 
+	// 是否降噪处理
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	public boolean isNoiseReduction() {
+		return isNoiseReduction;
+	}
+
+	public void setNoiseReduction(boolean isNoiseReduction) {
+		this.isNoiseReduction = isNoiseReduction;
+	}
+
+	//
+	public long getLastIndex() {
+		return this.tsIndexGen.get();
+	}
+	
+	//
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	public synchronized void addAvStream(byte rawType, byte[] rawData, byte[] rawReserved, int frameLength) {
     	
-		// idle, reset
     	long now = System.currentTimeMillis();
-    	if ( mtime > 0 && ((now - mtime) > (1000 * 60)) ) {
-    		this.ctime = now;
-    		this.mtime = ctime;
-    		this.rawCount = 0;
-    	}
     	
     	this.mtime = now;
     	this.rawCount++;
@@ -301,9 +311,16 @@ public class HlsLiveStream {
     			rawData = pcmuDecoder.process( rawData );
 				
 				if( volumeCtl == null ) {
-					volumeCtl = new VolumeControl((int)sampleRate, frameLength, isNoiseReduction);
+					volumeCtl = new VolumeControl((int)sampleRate, frameLength);
 				}
-				rawData = volumeCtl.autoControlVolume( rawData );
+				
+				//
+				rawData = volumeCtl.gain( rawData );
+				
+				//
+				if ( isNoiseReduction ) {
+					rawData = volumeCtl.noise( rawData );
+				}
 			}
     		
 	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, rawReserved );
