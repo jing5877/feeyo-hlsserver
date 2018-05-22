@@ -81,13 +81,17 @@
 									</tr>
 									
 									<tr>
-										<td style="position:absolute; left:0px; top:40px; padding:2px; margin:0px; right:0px;">
+										<td style="position:absolute; left:0px; top:35px; padding:2px; margin:0px; right:0px;">
 											#if($item.streamType < 10) 
 												audio sample=${item.sampleRate} / ${item.sampleSizeInBits} / ${item.channels}
 											#else 
 												video fps=${item.fps} 
 											#end   
 										</td>
+									</tr>
+									
+									<tr style="position:absolute; left:0px; top:45px; padding:2px; margin:0px; right:0px;">
+										<td>noise reduction= ${item.isNoiseReduction} </td>
 									</tr>
 									
 									<tr>

@@ -135,7 +135,7 @@ public class ResourceFileDownloadGetHandler implements IRequestHandler {
 
 	@Override
 	public Type getType() {
-		return IRequestHandler.Type.OTHER;
+		return IRequestHandler.Type.NONE;
 	}
 	
 }

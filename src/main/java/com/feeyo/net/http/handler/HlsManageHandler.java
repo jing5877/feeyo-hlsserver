@@ -34,7 +34,7 @@ public class HlsManageHandler implements IRequestHandler {
 
 	@Override
 	public Type getType() {
-		return IRequestHandler.Type.MANAGE;
+		return IRequestHandler.Type.AUTH;
 	}
 
 	@Override
@@ -133,6 +133,7 @@ public class HlsManageHandler implements IRequestHandler {
 				reponseTxt = "OK";
 			}
 			break;
+			
 		case HlsRpcUtil.UPD_NOISE_REDUCTION_CODE:
 			Long streamId = q.getLong("streamId");
 			if ( streamId != null ) {

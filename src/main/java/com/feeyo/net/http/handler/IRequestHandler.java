@@ -7,12 +7,10 @@ public interface IRequestHandler {
 	
 	// handler 类型
 	public static enum Type {
-		VM(1),
-		API(2),
-		HLS(3),
-		MANAGE(4),
-		OTHER(5);
-
+		NONE(1),
+		HLS(2),
+		AUTH(3);
+			
 		private final int value;
 		
 		Type(int value){

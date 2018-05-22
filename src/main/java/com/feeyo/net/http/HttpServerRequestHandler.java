@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.feeyo.net.http.filter.HlsTrafficFilter;
 import com.feeyo.net.http.filter.IFilter;
 import com.feeyo.net.http.filter.WhiteHostCheckFilter;
+import com.feeyo.net.http.handler.AuthHandler;
 import com.feeyo.net.http.handler.HlsLiveHandler;
 import com.feeyo.net.http.handler.HlsStreamsHandler;
 import com.feeyo.net.http.handler.HlsManageHandler;
@@ -68,13 +69,15 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		//
 		registerHandler(HttpMethod.POST, "/hls/manage", new HlsManageHandler());
 		registerHandler(HttpMethod.GET, "/hls/streams", new HlsStreamsHandler());
-
-
+		
+		// auth ( login & logout )
+		registerHandler(HttpMethod.GET, "/auth", new AuthHandler());
+		
 		// 流控
 		registerFilter(new HlsTrafficFilter(), Type.HLS);
 		
 		// 白名单
-		registerFilter(new WhiteHostCheckFilter(), Type.MANAGE);
+		registerFilter(new WhiteHostCheckFilter(), Type.AUTH);
     }
 
     private void registerFilter(IFilter filter, IRequestHandler.Type ...types) {
@@ -157,8 +160,8 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 			if ( isFilted && !isFilter(ctx, e, requestHandler) ) {
 
 				IRequestHandler.Type type = requestHandler.getType();	
-				if ( type == IRequestHandler.Type.VM ) {
-					sendRedirect(ctx, "/login");
+				if ( type == IRequestHandler.Type.AUTH ) {
+					sendRedirect(ctx, "/auth?action=page");
 					
 				} else {
 					HttpResponse response = buildDefaultResponse("", HttpResponseStatus.UNAUTHORIZED);

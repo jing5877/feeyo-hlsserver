@@ -43,7 +43,7 @@ public class WelcomeHandler implements IRequestHandler {
 
 	@Override
 	public Type getType() {
-		return Type.VM;
+		return Type.NONE;
 	}
 
 }

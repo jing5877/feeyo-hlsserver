@@ -21,7 +21,7 @@ public class HlsStreamsHandler implements IRequestHandler {
 	
 	@Override
 	public Type getType() {
-		return IRequestHandler.Type.VM;
+		return IRequestHandler.Type.NONE;
 	}
 
 	@Override
