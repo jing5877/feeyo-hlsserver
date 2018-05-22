@@ -61,8 +61,6 @@
 	
 				var loginName = $("input[name='loginName']").val();
 				var loginPassword = $("input[name='loginPassword']").val();
-				
-				//MD5
 				loginPassword = hex_md5(loginPassword);
 				
 		        $.ajax({
