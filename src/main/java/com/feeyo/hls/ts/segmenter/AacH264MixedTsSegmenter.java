@@ -82,7 +82,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 			public void run() {
 
 				long currentTime = System.currentTimeMillis();
-
+				//处理音视频丢包超时的情况
 				if (currentTime - preAacCTime > wTime) {
 					waitAac = false;
 					if (skipAac) {
@@ -150,11 +150,12 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 		}
 
 		if (ctime == 0) {
+			//记录首帧类型
 			headFrameType = rawDataType;
 			ctime = System.currentTimeMillis();
 		}
 
-		// from 0
+		//reserved记录数据包发送的索引顺序 （从0开始）
 		long index = ByteUtil.bytesToLong(reserved[0], reserved[1], reserved[2], reserved[3], reserved[4], reserved[5],
 				reserved[6], reserved[7]);
 
@@ -163,10 +164,12 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 		case V5PacketType.AAC_STREAM:
 
 			if (headFrameType != V5PacketType.AAC_STREAM && !syncPtsBase) {
+				//首帧是视频的情况，设置音频的相对解码时间（保证音视频按照同一个时间坐标轴计算pts）
 				aacTsSegmenter.setPts((System.currentTimeMillis() - ctime) * 90);
 				syncPtsBase = true;
 			}
-
+			
+			//当前序号等于下一个要处理的索引号，则进行内容编码，否则存入缓冲区排序后等到消费
 			if (index == preAacIndex + 1) {
 				preAacIndex++;
 				skipAac = false;
@@ -186,6 +189,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 				}
 			}
 
+			//将缓冲区中满足编码顺序的所有连续音频进行编码存入aacFrameCache中，等待与视频帧按照pts的时间顺序整合
 			while (!aacRawCache.isEmpty() && aacRawCache.get(0).index == preAacIndex + 1) {
 				preAacIndex++;
 				skipAac = false;
@@ -206,11 +210,14 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 				while (!avcLocking.compareAndSet(false, true)) {
 				}
 				if (headFrameType != V5PacketType.H264_STREAM && !syncPtsBase) {
+					//首帧是音频的情况下，设置视频的相对解码时间（保证音视频按照同一个时间坐标轴计算pts）
 					h264TsSegmenter.setPts((System.currentTimeMillis() - ctime) * 90);
 					syncPtsBase = true;
 				}
 
+				//当前序号等于下一个要处理的索引号，则进行内容编码，否则存入缓冲区排序后等到消费
 				if (index == preAvcIndex + 1) {
+					
 					skipAvc = false;
 					preAvcIndex = index;
 
@@ -225,6 +232,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 					skipAvc = true;
 				}
 
+				//将缓冲区中满足编码顺序的所有连续视频进行编码存入avcResultDeque中
 				while (!avcRawCache.isEmpty() && avcRawCache.get(0).index == preAvcIndex + 1) {
 					preAvcIndex++;
 					skipAvc = false;
@@ -234,7 +242,8 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 					preAvcCTime = System.currentTimeMillis();
 
 				}
-
+				
+				//当写入的最后一帧视频为IDR帧，最大视频的pts范围内的所有音频也已写入完成 且 音视频的播放时间大于10s，则将数据整合返回
 				if (isTailAvc && !waitAac) {
 					if(tsSecs[0] == null)
 						return null;
@@ -249,7 +258,10 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 					
 					return tsSecs[0] == null || tsSegTime < 10F ? null : write2Ts();
 				}
+				
 				while (!avcResultDeque.isEmpty()) {
+					//视频帧不空时候写入视频帧与音频帧，如果缺少相对时间内的音频帧数据，则循环等待音频帧的到来
+					//当写入的最后一帧视频为IDR帧，最大视频的pts范围内的所有音频也已写入完成 且 音视频的播放时间大于10s，则将数据整合返回
 					writeFrame();
 					if (isTailAvc && !waitAac) {
 						while (!avcFrameCache.isEmpty()) {
@@ -311,6 +323,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 		while (!aacFrameCache.isEmpty() && !avcFrameCache.isEmpty()) {
 
 			FrameData avcFrame = avcFrameCache.peek();
+			//音频帧与视频帧按照pts顺序时间写入tsSecs中
 			if (aacFrameCache.peek().pts < avcFrame.pts) {
 				FrameData frameData = aacFrameCache.pop();
 				byte[] aacTsSegment = tsWriter.write(isFirstAacPes, FrameDataType.MIXED, frameData);
@@ -335,6 +348,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 				mixPts = mixPts > maxAvcPts ? mixPts : maxAvcPts;
 			}
 		}
+		//判断是否需要等待音频帧
 		waitAac = (aacFrameCache.isEmpty() && maxAacPts + aacTsSegmenter.getPtsIncPerFrame() < maxAvcPts + h264TsSegmenter.getPtsIncPerFrame());
 	}
 
