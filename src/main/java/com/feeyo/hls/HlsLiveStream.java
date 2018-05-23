@@ -282,7 +282,7 @@ public class HlsLiveStream {
 
 	// 是否降噪处理
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	public boolean isNoiseReduction() {
+	public boolean getIsNoiseReduction() {
 		return isNoiseReduction;
 	}
 
