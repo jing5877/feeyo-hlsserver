@@ -204,13 +204,15 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
     
     private boolean isFilter(ChannelHandlerContext ctx, MessageEvent messageEvent, IRequestHandler requestHandler) {    	
     	List<IFilter> filters = filterChain.get(requestHandler.getType());
-		for (IFilter filter : filters) {
-			if (filter.doFilter(ctx, messageEvent)) {
-				continue;
-			} else {
-				return false;
+    	if ( filters != null ) {
+			for (IFilter filter : filters) {
+				if (filter.doFilter(ctx, messageEvent)) {
+					continue;
+				} else {
+					return false;
+				}
 			}
-		}
+    	}
 		return true;
     }
     
