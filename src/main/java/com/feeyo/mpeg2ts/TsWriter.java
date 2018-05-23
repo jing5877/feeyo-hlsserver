@@ -229,6 +229,7 @@ public class TsWriter {
 	 * write a PTS or DTS
 	 * 
 	 * @see https://github.com/kynesim/tstools/blob/master/ts.c
+	 * @see https://www.ffmpeg.org/doxygen/0.6/mpegtsenc_8c-source.html
 	 */
 	private int write_pts_dts(byte[] buf, int offset, int guard_bits, long value) {
 		
