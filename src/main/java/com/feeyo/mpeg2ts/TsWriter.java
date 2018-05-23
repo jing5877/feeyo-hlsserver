@@ -334,7 +334,8 @@ public class TsWriter {
 				if ( isFristTs ) {
 					
 					 tsBuf[offset++] = 0x07;                						 							// size
-					 tsBuf[offset++] |= isFirstPes ? 0x50 : (isAudio && frameDataType == FrameDataType.MIXED ? 0x50 : 0x10);            						// flag bits 0001 0000 , 0x10
+					 tsBuf[offset++] |= isFirstPes ? 0x50 : (isAudio && frameDataType == FrameDataType.MIXED ? 0x50 : 0x10);            						
+					 																							// flag bits 0001 0000 , 0x10
 					 																							// flag bits 0101 0000 , 0x50
 					 /* write PCR */
 					 long pcr = pts;
@@ -363,8 +364,7 @@ public class TsWriter {
 						tsBuf[offset++] = 0x00; // 为0表示不受限制
 						tsBuf[offset++] = 0x00; // 16:
 					}
-					
-					
+		
 					
 					// PES 包头识别标志
 					byte PTS_DTS_flags =  (byte) 0xc0;
