@@ -115,7 +115,7 @@ public class TsWriterTest {
 
 					currentFrameIdx = frameIdx;
 					frames[ currentFrameIdx ] = new FrameData();
-					
+
 					frames[ currentFrameIdx ].buf = append( frames[ currentFrameIdx ].buf, pes.es_data, 0, pes.es_data.length);
 					frames[ currentFrameIdx ].dts =  pes.dts;
 					frames[ currentFrameIdx ].pts = pes.pts;
@@ -138,7 +138,7 @@ public class TsWriterTest {
 		//System.out.println( bytesToHexString( tsFileBuf, 0, tsFileBuf.length));
 		
 		// mix
-		writeTsFile("/Users/zhuam/git/feeyo/feeyostreamhls/testdata/test1.ts", tsFileBuf);
+		writeTsFile("/Users/zhuam/git/variflight/feeyo-hlsserver/testdata/test1.ts", tsFileBuf);
 		
 
 		int audioFrameIndex = 0;
