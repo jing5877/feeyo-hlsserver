@@ -13,6 +13,7 @@
 #nav ul {
 	width: 98%;
 	margin: 0 auto; /*水平居中*/
+	list-style-type: none;
 }
 
 #nav li {
