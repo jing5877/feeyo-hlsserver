@@ -28,9 +28,9 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.feeyo.net.http.filter.AuthCheckFilter;
 import com.feeyo.net.http.filter.HlsTrafficFilter;
 import com.feeyo.net.http.filter.IFilter;
-import com.feeyo.net.http.filter.WhiteHostCheckFilter;
 import com.feeyo.net.http.handler.AuthHandler;
 import com.feeyo.net.http.handler.HlsLiveHandler;
 import com.feeyo.net.http.handler.HlsStreamsHandler;
@@ -61,23 +61,21 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
     public HttpServerRequestHandler() {
     	super();    	
     	
-    	// 注册处理器
+    	// handlers
     	registerHandler(HttpMethod.GET, "/", new WelcomeHandler());	
 		registerHandler(HttpMethod.GET, "/hls/*/*", new HlsLiveHandler());
 		registerHandler(HttpMethod.GET, "/hls/vod/*/*", new HlsVodHandler());
-		
-		//
+
 		registerHandler(HttpMethod.POST, "/hls/manage", new HlsManageHandler());
 		registerHandler(HttpMethod.GET, "/hls/streams", new HlsStreamsHandler());
+
+		//  login & logout ...
+		registerHandler(HttpMethod.GET, "/auth", new AuthHandler());	
 		
-		// auth ( login & logout )
-		registerHandler(HttpMethod.GET, "/auth", new AuthHandler());
 		
-		// 流控
-		registerFilter(new HlsTrafficFilter(), Type.HLS);
-		
-		// 白名单
-		registerFilter(new WhiteHostCheckFilter(), Type.AUTH);
+		// filters
+		registerFilter(new HlsTrafficFilter(), Type.HLS);		
+		registerFilter(new AuthCheckFilter(), Type.AUTH);		
     }
 
     private void registerFilter(IFilter filter, IRequestHandler.Type ...types) {
