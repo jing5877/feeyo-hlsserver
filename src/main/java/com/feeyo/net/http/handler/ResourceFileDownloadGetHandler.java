@@ -37,6 +37,17 @@ public class ResourceFileDownloadGetHandler implements IRequestHandler {
 	
 	private static final String READ_ONLY = "r";
 	private static final int HTTP_CACHE_SECONDS = 60;
+	
+	
+	@Override
+	public Type getType() {
+		return IRequestHandler.Type.OTHER;
+	}
+	
+	@Override
+	public boolean isFilted() {
+		return false;
+	}
 
 	public void execute(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 		
@@ -126,16 +137,6 @@ public class ResourceFileDownloadGetHandler implements IRequestHandler {
 				channelFuture.getChannel().close();
 			}
 		}
-	}
-	
-	@Override
-	public boolean isFilted() {
-		return false;
-	}
-
-	@Override
-	public Type getType() {
-		return IRequestHandler.Type.NONE;
 	}
 	
 }

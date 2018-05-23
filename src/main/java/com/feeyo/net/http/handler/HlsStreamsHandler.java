@@ -17,16 +17,18 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
 
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.util.velocity.VelocityBuilder;
+
+
 public class HlsStreamsHandler implements IRequestHandler {
 	
 	@Override
 	public Type getType() {
-		return IRequestHandler.Type.NONE;
+		return IRequestHandler.Type.VM;
 	}
 
 	@Override
 	public boolean isFilted() {
-		return false;
+		return true;
 	}
 
 	@Override

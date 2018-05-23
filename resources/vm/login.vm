@@ -34,7 +34,7 @@
 			                </tr>
 			                <tr>
 			                    <td></td>
-			                    <td> <button class="login-btn" >登录</button> </td>
+			                    <td> <button class="login-btn" > LOGIN </button> </td>
 			                </tr>
 			            </tbody>
 			        </table>	 
@@ -66,20 +66,20 @@
 		        $.ajax({
 		            type: "GET",
 		            url: "/auth",
-		            data: {user: loginName, pwd: loginPassword},
-		            contentType: "application/text; charset=utf-8",
-		            dataType: "html",
+		            data: { action: "LOGIN", user: loginName, pwd: loginPassword},
+		            contentType: "text/plain; charset=utf-8",
+		            dataType: "text",
 		            success: function (response) {		
-		                            
-		                if ( response.code == 200 ) {
+
+		                if ( response == 'OK' ) {
 		                	window.location.href = "/";
 		                	
 		                } else {
-		                	alert("login failure ...");
+		                	alert("login failure ..." + response);
 		                }
 		            },
 		            failure: function (response) {		            	
-		                console.log(response.data);
+		                console.log(response);
 		            }
 		        });				
 			};

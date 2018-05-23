@@ -34,7 +34,7 @@ public class HlsManageHandler implements IRequestHandler {
 
 	@Override
 	public Type getType() {
-		return IRequestHandler.Type.AUTH;
+		return IRequestHandler.Type.MANAGE;
 	}
 
 	@Override

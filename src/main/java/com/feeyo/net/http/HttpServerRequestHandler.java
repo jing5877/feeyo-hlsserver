@@ -75,7 +75,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		
 		// filters
 		registerFilter(new HlsTrafficFilter(), Type.HLS);		
-		registerFilter(new AuthCheckFilter(), Type.AUTH);		
+		registerFilter(new AuthCheckFilter(), Type.VM, Type.API);		
     }
 
     private void registerFilter(IFilter filter, IRequestHandler.Type ...types) {
@@ -158,7 +158,7 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 			if ( isFilted && !isFilter(ctx, e, requestHandler) ) {
 
 				IRequestHandler.Type type = requestHandler.getType();	
-				if ( type == IRequestHandler.Type.AUTH ) {
+				if ( type == IRequestHandler.Type.VM ) {
 					sendRedirect(ctx, "/auth?action=page");
 					
 				} else {

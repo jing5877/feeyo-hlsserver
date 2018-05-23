@@ -25,6 +25,7 @@ import org.jboss.netty.handler.codec.http.cookie.DefaultCookie;
 import org.jboss.netty.handler.codec.http.cookie.ServerCookieEncoder;
 
 import com.feeyo.net.http.token.Token;
+import com.feeyo.net.http.token.TokenMagr;
 import com.feeyo.net.http.util.HttpUtil;
 import com.feeyo.util.velocity.VelocityBuilder;
 
@@ -33,7 +34,7 @@ public class AuthHandler implements IRequestHandler {
 
 	@Override
 	public Type getType() {
-		return IRequestHandler.Type.NONE;
+		return IRequestHandler.Type.AUTH;
 	}
 
 	@Override
@@ -72,7 +73,7 @@ public class AuthHandler implements IRequestHandler {
 			    			pwdQ != null && !pwdQ.isEmpty() ) {
 			    		String user = userQ.get(0);
 			    		String pwd = pwdQ.get(0);
-			    		if ( "feeyo".equalsIgnoreCase( user ) && "feeyo".equalsIgnoreCase( pwd ) ) {
+			    		if ( "feeyo".equalsIgnoreCase( user ) && "ef27825016c32d5944d282e65b187f2a".equalsIgnoreCase( pwd ) ) {
 			    			success = true;
 			    			responseTxt = "OK";
 			    		}
@@ -86,7 +87,7 @@ public class AuthHandler implements IRequestHandler {
 			    	if ( success ) {
 
 			    		//
-						String access_string = "";
+						String access_string = TokenMagr.getInstance().createToken();
 						DefaultCookie c = new DefaultCookie(Token.ACCESS_STRING, access_string);
 						c.setMaxAge( 60 * 60 * 24 * 7 );
 						c.setPath("/");

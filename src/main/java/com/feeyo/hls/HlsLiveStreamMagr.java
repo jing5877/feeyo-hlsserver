@@ -35,7 +35,7 @@ public class HlsLiveStreamMagr {
     private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(10, 100, 60 * 1000L, 
     		TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(5000), new DefaultThreadFactory("HlsLsMagr-", true));
     
-    private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(3);
+    private static ScheduledExecutorService scheduledThreadPoolExecutor = Executors.newScheduledThreadPool(3);
 
     // alias -> streamId 
 	private static Map<String, Long> aliasToStreamIdCache = new ConcurrentHashMap<String, Long>();
@@ -63,7 +63,7 @@ public class HlsLiveStreamMagr {
     public void startup() {
     	
 		// delete expired liveStream & clientSession
-    	scheduledExecutor.scheduleAtFixedRate( new Runnable() {
+    	scheduledThreadPoolExecutor.scheduleAtFixedRate( new Runnable() {
 
 			@Override
 			public void run() {
@@ -114,8 +114,8 @@ public class HlsLiveStreamMagr {
             threadPoolExecutor.shutdown();
         }
         
-        if ( scheduledExecutor != null ) {
-        	scheduledExecutor.shutdown();
+        if ( scheduledThreadPoolExecutor != null ) {
+        	scheduledThreadPoolExecutor.shutdown();
         }
     }
     

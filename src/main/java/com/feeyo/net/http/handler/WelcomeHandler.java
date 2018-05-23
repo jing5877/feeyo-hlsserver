@@ -16,6 +16,16 @@ import com.feeyo.util.velocity.VelocityBuilder;
 
 
 public class WelcomeHandler implements IRequestHandler {
+	
+	@Override
+	public Type getType() {
+		return Type.VM;
+	}
+	
+	@Override
+	public boolean isFilted() {
+		return true;
+	}
 
 	@Override
 	public void execute(ChannelHandlerContext ctx, MessageEvent e) {
@@ -35,15 +45,6 @@ public class WelcomeHandler implements IRequestHandler {
 			channelFuture.getChannel().close();
 		}
 	}
-	
-	@Override
-	public boolean isFilted() {
-		return false;
-	}
 
-	@Override
-	public Type getType() {
-		return Type.NONE;
-	}
 
 }
