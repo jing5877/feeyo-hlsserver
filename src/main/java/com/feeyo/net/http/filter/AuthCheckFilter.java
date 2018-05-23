@@ -1,8 +1,6 @@
 package com.feeyo.net.http.filter;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -27,50 +25,50 @@ public class AuthCheckFilter implements IFilter {
 	@Override
 	public boolean doFilter(ChannelHandlerContext ctx, MessageEvent messageEvent) {
 		
-		HttpRequest request = (DefaultHttpRequest) messageEvent.getMessage();
-		
 		boolean isPass = true;
 		
-		// 解析 Cookie
-		Map<String, Cookie> cookieMap = new HashMap<String, Cookie>();
-		
-		String value = request.headers().get( HttpHeaders.Names.COOKIE );
-		Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(value != null ? value : "");
+		HttpRequest request = (DefaultHttpRequest) messageEvent.getMessage();
+		String access_string = request.headers().get(Token.ACCESS_STRING);
+		if ( access_string == null ) {
+			// 解析 Cookie
+			String value = request.headers().get( HttpHeaders.Names.COOKIE );
+			Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(value != null ? value : "");
 
-		Iterator<Cookie> it = cookies.iterator();
-		while( it.hasNext() ) {
-			Cookie c = it.next();
-			cookieMap.put(c.name(), c);
+			Iterator<Cookie> it = cookies.iterator();
+			while( it.hasNext() ) {
+				Cookie c = it.next();
+				if ( Token.ACCESS_STRING.equals( c.name() ) ) {
+					access_string = c.value();
+					break;
+				}
+			}
 		}
 		
-		Cookie cookie = cookieMap.get( Token.ACCESS_STRING );
-		if ( cookie != null ) {		
-			
-			//提取 access_token
-			String access_token = cookie.value();
-			try {					
-				Token token = TokenMagr.getInstance().getTokenByAccessString(access_token);
-				if ( token != null ) {
-					
-					int now = (int)(System.currentTimeMillis() / 1000L);
-					int expires =  token.getCreateTimestamp() + ( token.getExpiresIn() * 60 * 60 * 24);
-					if ( expires < now) {
-						TokenMagr.getInstance().deleteTokenByAccessString( access_token );
+		
+		if (access_string != null) {
+			try {
+				Token token = TokenMagr.getInstance().getToken(access_string);
+				if (token != null) {
+
+					int now = (int) (System.currentTimeMillis() / 1000L);
+					int expires = token.getCreateAt() + (token.getExpiresIn() * 60 * 60 * 24);
+					if (expires < now) {
+						TokenMagr.getInstance().deleteToken(access_string);
 						isPass = false;
 					}
-					
-				} else {					
+
+				} else {
 					isPass = false;
 				}
-				
-			} catch( Exception e) {
+
+			} catch (Exception e) {
 				LOGGER.error("filter error  -- > " + request.getUri(), e);
 			}
-			
+
 		} else {
 			isPass = false;
 		}
-		
+
 		return isPass;
 		
 		

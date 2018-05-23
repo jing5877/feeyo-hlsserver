@@ -64,37 +64,49 @@ public class AuthHandler implements IRequestHandler {
 			    	List<String> userQ = parameters.get("user");
 			    	List<String> pwdQ = parameters.get("pwd");
 			    	
-			    	String responseTxt = "";
-			    	String access_token = "";
+			    	boolean success = false; 
+			    	String responseTxt = "ERROR";
 			    	
 			    	//
 			    	if ( userQ != null && !userQ.isEmpty() &&
 			    			pwdQ != null && !pwdQ.isEmpty() ) {
-			    		
-			    		
-			    		
-			    		//
+			    		String user = userQ.get(0);
+			    		String pwd = pwdQ.get(0);
+			    		if ( "feeyo".equalsIgnoreCase( user ) && "feeyo".equalsIgnoreCase( pwd ) ) {
+			    			success = true;
+			    			responseTxt = "OK";
+			    		}
 			    	}
 			    	
-			    	//
 			    	HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-					response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, responseTxt.length());
-					response.headers().add(HttpHeaders.Names.CONTENT_TYPE, "text/plain;charset=UTF-8"); 
+			    	response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain;charset=UTF-8"); 
+			    	response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, responseTxt.length());
+			    	
+			    	// login success
+			    	if ( success ) {
 
-					DefaultCookie c = new DefaultCookie(Token.ACCESS_STRING, access_token);
-					c.setMaxAge( 60 * 60 * 24 * 7 );
-					c.setPath("/");
-					
-					Map<String, Cookie> cookies = getCookies( request );
-					cookies.put(Token.ACCESS_STRING, c);
-					
-					for (Cookie cookie : cookies.values()) {
-						response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
-					}
-					
+			    		//
+						String access_string = "";
+						DefaultCookie c = new DefaultCookie(Token.ACCESS_STRING, access_string);
+						c.setMaxAge( 60 * 60 * 24 * 7 );
+						c.setPath("/");
+						
+						Map<String, Cookie> cookies = getCookies( request );
+						cookies.put(Token.ACCESS_STRING, c);
+						
+						for (Cookie cookie : cookies.values()) {
+							response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
+						}
+						
+						
+						response.headers().set(Token.ACCESS_STRING, access_string);
+
+			    	} 
+			    	
+					//
 					ChannelBuffer buffer = ChannelBuffers.copiedBuffer(responseTxt, Charset.defaultCharset());
 					response.setContent(buffer);
-					
+
 					ChannelFuture channelFuture = ctx.getChannel().write(response);
 					if (channelFuture.isSuccess()) {
 						channelFuture.getChannel().close();
@@ -115,7 +127,7 @@ public class AuthHandler implements IRequestHandler {
 					}
 
 					for (Cookie cookie : cookies.values()) {
-						response.headers().add(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
+						response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
 					}
 
 					ctx.getChannel().write(response).addListener(ChannelFutureListener.CLOSE);
@@ -128,7 +140,7 @@ public class AuthHandler implements IRequestHandler {
 	    			String htmlText = velocityBuilder.generate("login.vm", "UTF8", null);
 	    			
 	    			HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-	    			response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, htmlText.length());
+	    			response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, htmlText.length());
 	    			response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=UTF-8");
 
 	    			ChannelBuffer buffer = ChannelBuffers.copiedBuffer(htmlText, Charset.defaultCharset());// CharsetUtil.UTF_8);
