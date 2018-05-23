@@ -90,8 +90,10 @@
 										</td>
 									</tr>
 									
-									<tr style="position:absolute; left:0px; top:45px; padding:2px; margin:0px; right:0px;">
-										<td>noise reduction= ${item.isNoiseReduction} </td>
+									<tr>
+										<td style="position:absolute; left:0px; top:45px; padding:2px; margin:0px; right:0px;">
+											noise reduction= ${item.isNoiseReduction} 
+										</td>
 									</tr>
 									
 									<tr>

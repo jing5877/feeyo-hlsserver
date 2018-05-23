@@ -73,8 +73,6 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		prepare4NextTs();
 	}
 	
-	
-	
 	@Override
 	public void initialize(float sampleRate, int sampleSizeInBits, int channels, int fps) {
 		this.fps = fps;
@@ -83,6 +81,11 @@ public class H264TsSegmenter extends AbstractTsSegmenter{
 		pts += ptsIncPerFrame;
 		dts = pts - 200;
 		tsSegTime = frameNum * ptsIncPerFrame / 1000F;	//默认值
+	}
+	
+	public void resetPts(long pts) {
+		this.pts = pts;
+		this.ptsBase = 0L;
 	}
 
 	public void prepare4NextTs() {

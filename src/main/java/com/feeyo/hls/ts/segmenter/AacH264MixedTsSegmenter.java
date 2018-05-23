@@ -165,7 +165,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 
 			if (headFrameType != V5PacketType.AAC_STREAM && !syncPtsBase) {
 				//首帧是视频的情况，设置音频的相对解码时间（保证音视频按照同一个时间坐标轴计算pts）
-				aacTsSegmenter.setPts((System.currentTimeMillis() - ctime) * 90);
+				aacTsSegmenter.resetPts((System.currentTimeMillis() - ctime) * 90);
 				syncPtsBase = true;
 			}
 			
@@ -211,7 +211,7 @@ public class AacH264MixedTsSegmenter extends AbstractTsSegmenter {
 				}
 				if (headFrameType != V5PacketType.H264_STREAM && !syncPtsBase) {
 					//首帧是音频的情况下，设置视频的相对解码时间（保证音视频按照同一个时间坐标轴计算pts）
-					h264TsSegmenter.setPts((System.currentTimeMillis() - ctime) * 90);
+					h264TsSegmenter.resetPts((System.currentTimeMillis() - ctime) * 90);
 					syncPtsBase = true;
 				}
 

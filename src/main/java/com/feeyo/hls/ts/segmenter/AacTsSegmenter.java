@@ -45,6 +45,11 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 			aacBufArr[i] = null;
 		}
 	}
+	
+	public void resetPts(long pts) {
+		this.pts = pts;
+		this.ptsBase = 0L;
+	}
 
 	@Override
 	public void close() {
