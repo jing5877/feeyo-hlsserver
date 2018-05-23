@@ -338,10 +338,9 @@ public class TsWriter {
 					tsBuf[offset++] = (byte) 0x80; 						
 					tsBuf[offset++] = (byte) 0xc0; 	// (1100 0000) PTS DTS						
 					tsBuf[offset++] = (byte) header_size;
-	
 					
 					/* write pts */
-					tsBuf[offset++] = (byte) (((pts >> 30) & 0xFE) | 0x31);
+					tsBuf[offset++] = (byte) (((pts >> 29) & 0xFE) | 0x31);
 					tsBuf[offset++] = (byte) ((pts >> 22) & 0xff);
 					tsBuf[offset++] = (byte) (((pts >> 14) & 0xFE) | 0x01);
 					tsBuf[offset++] = (byte) ((pts >> 7) & 0xff);
@@ -353,7 +352,7 @@ public class TsWriter {
 					tsBuf[offset++] = (byte) (((dts >> 14) & 0xFE) | 0x01);
 					tsBuf[offset++] = (byte) ((dts >> 7) & 0xff);
 					tsBuf[offset++] = (byte) ((dts << 1) & 0xFE | 0x01);
-		     		
+					
 		     		// H264 NAL
 					if ( !isAudio && Bytes.indexOf(frameBuf, H264_NAL ) == -1 ) {
 		     			System.arraycopy(H264_NAL, 0, tsBuf, offset++, H264_NAL.length);
