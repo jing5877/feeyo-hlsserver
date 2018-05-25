@@ -1,7 +1,5 @@
 package com.feeyo.audio.noise;
 
-import com.feeyo.audio.volume.VolumeUtil;
-
 public class NoiseSuppress {
 	
 	//
@@ -11,19 +9,19 @@ public class NoiseSuppress {
 		noiseReduction = createNoiseReduction(sampleRate, frameSize);
 	}
 	
-	public byte[] noiseReductionProcess(byte[] pcm) {
+	public short[] noiseReductionProcess(short[] pcm) {
 		
 		int i;
 		noiseReduction.adapt_count++;
-		short[] ioPcm = VolumeUtil.byteArray2shortArray(pcm);
-		frequencyAnalysis(ioPcm);
+
+		frequencyAnalysis(pcm);
 		noiseEstimation();
 		audioEnhancement();
 
 		FftAlgorithm.spx_ifft(noiseReduction.fft_table, noiseReduction.ft, noiseReduction.outpcm);
 		// overlap and add
 		for (i = 0; i < noiseReduction.frame_size; i++) {
-			ioPcm[i] = (short) (noiseReduction.outbuf[i] + noiseReduction.outpcm[i]);
+			pcm[i] = (short) (noiseReduction.outbuf[i] + noiseReduction.outpcm[i]);
 		}
 		for (i = 0; i < noiseReduction.frame_size; i++)
 			noiseReduction.outbuf[i] = noiseReduction.outpcm[noiseReduction.frame_size + i] * noiseReduction.win_gain;
@@ -31,7 +29,8 @@ public class NoiseSuppress {
 		// limit value of adapt_count
 		if (noiseReduction.adapt_count > 16000)
 			noiseReduction.adapt_count = 2;
-		return VolumeUtil.shortArray2byteArray(ioPcm);
+		
+		return pcm;
 	}
 
 	private void audioEnhancement() {
@@ -171,7 +170,7 @@ public class NoiseSuppress {
 		pInst.fft_table = FftAlgorithm.spx_fft_init(2 * N);
 		pInst.outpcm = new float[2 * N];
 
-		VolumeUtil.hamming(2 * N, pInst.window);
+		hamming(2 * N, pInst.window);
 		total_win_gain = 0;
 		for (i = 0; i < 2 * N; i++)
 			total_win_gain += pInst.window[i];
@@ -179,6 +178,21 @@ public class NoiseSuppress {
 		pInst.adapt_count = 0;
 		return pInst;
 	}
+	
+	
+	/*
+	 * Hamming 2*pi*k w(k) = 0.54 - 0.46*cos(------), where 0 <= k < N N-1
+	 *
+	 * n window length w buffer for the window parameters
+	 */
+	private void hamming(int n, float[] w) {
+		int i;
+		float k = (float) (2 * Math.PI / (n - 1)); /* 2*pi/(N-1) */
+
+		for (i = 0; i < n; i++)
+			w[i] = (float) (0.54 - 0.46 * Math.cos(k * i));
+	}
+	
 	
 	class NoiseReduction {
 

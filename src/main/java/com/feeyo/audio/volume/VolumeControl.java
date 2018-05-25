@@ -1,15 +1,15 @@
 package com.feeyo.audio.volume;
 
-import com.feeyo.audio.noise.NoiseGenerator;
+import com.feeyo.audio.noise.NoiseSample;
 import com.feeyo.audio.noise.NoiseSuppress;
 
 public class VolumeControl {
 	
-	public static final double silenceThresold  = -70D;
+	public static final double DEFAULT_SILENCE_THRESHOLD  = -70D;
 	
 	// 最大的梯度分贝
-	private double maxGradientDb = -999;
-	private double newMaxGradientDb = maxGradientDb;
+	private double max_dB = -999;
+	private double new_max_dB = max_dB;
 	
 	private long ctime = 0;
 	
@@ -23,67 +23,71 @@ public class VolumeControl {
 	
 	public byte[] noise(byte[] data) {
 		// 降噪
-		data = noiseSupress.noiseReductionProcess(data);
+		
+		short[] pcm = VolumeUtil.toShortArray(data);
+		pcm = noiseSupress.noiseReductionProcess(pcm);
+		data = VolumeUtil.toByteArray(pcm);
+		
 		return data;
 	}
 	
 	public byte[] gain(byte[] data) {
 		
-		short[] pcm = VolumeUtil.byteArray2shortArray(data);
-		double db = VolumeUtil.calMaxVolumeDbByAbs( pcm );
-		long now = System.currentTimeMillis();
+		short[] pcmData = VolumeUtil.toShortArray(data);
 		
+		double db = VolumeUtil.getMaxSoundPressureLevel( pcmData );
+
 		// lookup max gradient db
+		long now = System.currentTimeMillis();
 		if ( now - ctime > (5 * 60 * 1000) ) {
 			
-			if (newMaxGradientDb != -999) {
-				maxGradientDb = newMaxGradientDb;
+			if (new_max_dB != -999) {
+				max_dB = new_max_dB;
 				
 				//reset
-				newMaxGradientDb = -999;
+				new_max_dB = -999;
 			}
 			ctime = now;
-			maxGradientDb = Math.max( maxGradientDb, db );
+			max_dB = Math.max( max_dB, db );
 
 		} else {
-			newMaxGradientDb = Math.max( newMaxGradientDb, db );
+			new_max_dB = Math.max( new_max_dB, db );
 		}
 		
 		// 增益
-		if (maxGradientDb != -999 && maxGradientDb < -8) {
+		if (max_dB != -999 && max_dB < -8) {
 			
 			// 音量自动增益
-			double inc = ( getGradientDb() - maxGradientDb );
+			double inc = ( getGradientDb() - max_dB );
 			double multiplier = Math.pow(10, inc / 20);
 			
-			for (int i = 0; i < pcm.length; i++) {
-				short pcmval = (short) (multiplier * pcm[i]);
+			for (int i = 0; i < pcmData.length; i++) {
+				short pcmval = (short) (multiplier * pcmData[i]);
 				if (pcmval < 32767 && pcmval > -32768) {
-					pcm[i] = pcmval;
+					pcmData[i] = pcmval;
 				} else if (pcmval > 32767) {
-					pcm[i] = 32767;
+					pcmData[i] = 32767;
 				} else if (pcmval < -32768) {
-					pcm[i] = -32768;
+					pcmData[i] = -32768;
 				}
 			}
-			data = VolumeUtil.shortArray2byteArray(pcm);
+			
+			data = VolumeUtil.toByteArray( pcmData );
 		}
-		
-
 		return data;
 	}
 	
 	private double getGradientDb() {
-		if (maxGradientDb < -15f) {
+		if (max_dB < -15f) {
 			return -2;
 			
-		} else if (maxGradientDb < -14) {
+		} else if (max_dB < -14) {
 			return -3;
 			
-		} else if (maxGradientDb < -12) {
+		} else if (max_dB < -12) {
 			return -4;
 			
-		} else if (maxGradientDb < -9) {
+		} else if (max_dB < -9) {
 			return -5;
 			
 		} else {
@@ -91,18 +95,19 @@ public class VolumeControl {
 		}
 	}
 	
-	public byte[] noiseCompensate(double silenceThreshold, byte[] rawData) {
+	public byte[] silenceDetection( byte[] rawData ) {
 		
-		short[] pcmData = VolumeUtil.byteArray2shortArray(rawData);
-		boolean isSilence = VolumeUtil.calAvgVolumeDbBySqure(pcmData) < silenceThreshold;
+		short[] pcmData = VolumeUtil.toShortArray(rawData);
 		
-		return isSilence ? generateWhiteNoise(rawData.length) : rawData;
-	}
-
-	private byte[] generateWhiteNoise(int length) {
-		byte[] pcm = new byte[length];
-		System.arraycopy(NoiseGenerator.getFixedNoise(), 0, pcm, 0, length);
-		return pcm;
+		// 
+		boolean isSilence = VolumeUtil.getSoundPressureLevel(pcmData) < DEFAULT_SILENCE_THRESHOLD;
+		if ( isSilence ) {
+			byte[] pcm = new byte[rawData.length];
+			System.arraycopy(NoiseSample.WHITE_NOISE, 0, pcm, 0, rawData.length);
+			return pcm;
+		} 
+		
+		return rawData;
 	}
 	
 }

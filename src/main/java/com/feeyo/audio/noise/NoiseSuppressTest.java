@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import com.feeyo.audio.volume.VolumeUtil;
+
 public class NoiseSuppressTest {
 	
 	public static void main(String[] args) {
@@ -24,7 +26,12 @@ public class NoiseSuppressTest {
 			
 			byte[] buff11 = new byte[2048];
 			System.arraycopy(fileBuff, i, buff11, 0, 2048);
-			buff11 = ns.noiseReductionProcess(buff11);
+			
+			short[] ioPcm = VolumeUtil.toShortArray(buff11);
+			
+			ioPcm = ns.noiseReductionProcess(ioPcm);
+			
+			buff11 = VolumeUtil.toByteArray(ioPcm);
 			write(buff11);
 		}
 		
