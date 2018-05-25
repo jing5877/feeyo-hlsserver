@@ -5,7 +5,7 @@ import com.feeyo.audio.noise.NoiseSuppress;
 
 public class VolumeControl {
 	
-	public static final double silenceThresold  = -75D;
+	public static final double silenceThresold  = -70D;
 	
 	// 最大的梯度分贝
 	private double maxGradientDb = -999;
@@ -90,13 +90,16 @@ public class VolumeControl {
 			return -6;
 		}
 	}
-
-	public boolean isSilence(double silenceThreshold, byte[] rawData) {
-		short[] pcmData = VolumeUtil.byteArray2shortArray(rawData);
-		return VolumeUtil.calAvgVolumeDbBySqure(pcmData) < silenceThreshold; 
-	}
 	
-	public byte[] generateWhiteNoise(int length) {
+	public byte[] noiseCompensate(double silenceThreshold, byte[] rawData) {
+		
+		short[] pcmData = VolumeUtil.byteArray2shortArray(rawData);
+		boolean isSilence = VolumeUtil.calAvgVolumeDbBySqure(pcmData) < silenceThreshold;
+		
+		return isSilence ? generateWhiteNoise(rawData.length) : rawData;
+	}
+
+	private byte[] generateWhiteNoise(int length) {
 		byte[] pcm = new byte[length];
 		System.arraycopy(NoiseGenerator.getFixedNoise(), 0, pcm, 0, length);
 		return pcm;

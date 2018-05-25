@@ -324,18 +324,16 @@ public class HlsLiveStream {
 					volumeCtl = new VolumeControl((int)sampleRate, frameLength);
 				}
 
-				boolean isSilence = volumeCtl.isSilence(VolumeControl.silenceThresold, rawData);
-				if(isNoiseCompensate && isSilence) {
-					rawData = volumeCtl.generateWhiteNoise(rawData.length);
-					
-				}else {
-					//
-					rawData = volumeCtl.gain( rawData );
-					
-					//
-					if ( isNoiseReduction ) {
-						rawData = volumeCtl.noise( rawData );
-					}
+				//
+				rawData = volumeCtl.gain( rawData );
+				
+				//
+				if ( isNoiseReduction ) {
+					rawData = volumeCtl.noise( rawData );
+				}
+				
+				if(isNoiseCompensate) {
+					rawData = volumeCtl.noiseCompensate(VolumeControl.silenceThresold, rawData);
 				}
 				
 				
