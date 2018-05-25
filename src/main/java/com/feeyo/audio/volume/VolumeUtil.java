@@ -5,15 +5,6 @@ import java.nio.ByteOrder;
 
 public class VolumeUtil {
 	
-	
-	public static void main(String[] args) {
-		
-		
-		
-		
-		
-	}
-
 	public static byte[] autoControlVolume(byte[] data, double inc) {
 
 		short[] pcm = byteArray2shortArray(data);
@@ -39,9 +30,18 @@ public class VolumeUtil {
 		return 20 * Math.log10(maxData > 0 ? maxData / 32767 : maxData / -32768);
 	}
 	
-	
-	
-	
+	public static double calAvgVolumeDbBySqure(short[] pcmData) {
+		
+		double power = 0.0D;
+		
+		for (short element : pcmData) {
+			power += element * element;
+		}
+		
+		double value = Math.sqrt(power);
+		value = value / pcmData.length;
+		return 20.0 * Math.log10(value / 32767);
+	}
 	
 	public static byte[] shortArray2byteArray(short[] shorts) {
 		byte[] bytes = new byte[shorts.length * 2];

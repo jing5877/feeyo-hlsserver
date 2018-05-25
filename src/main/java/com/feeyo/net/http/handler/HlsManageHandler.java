@@ -127,19 +127,33 @@ public class HlsManageHandler implements IRequestHandler {
 			}
 			break;
 		case HlsRpcUtil.UPD_ADS_CODE:
-			Boolean isHasAds = q.getBoolean("isHasAds");
-			if ( isHasAds != null ) {
-				AdsMagr.setHasAds(isHasAds);	
-				reponseTxt = "OK";
+			{
+				Boolean isHasAds = q.getBoolean("isHasAds");
+				if ( isHasAds != null ) {
+					AdsMagr.setHasAds(isHasAds);	
+					reponseTxt = "OK";
+				}
 			}
 			break;
 			
 		case HlsRpcUtil.UPD_NOISE_REDUCTION_CODE:
-			Long streamId = q.getLong("streamId");
-			if ( streamId != null ) {
-				Boolean isNoiseReduction = q.getBoolean("isNoiseReduction");
-				HlsLiveStreamMagr.INSTANCE().updateHlsLiveStreamNoiseReductionById( streamId,  isNoiseReduction );
-				reponseTxt = "OK";
+			{
+				Long streamId = q.getLong("streamId");
+				if ( streamId != null ) {
+					Boolean isNoiseReduction = q.getBoolean("isNoiseReduction");
+					HlsLiveStreamMagr.INSTANCE().updateHlsLiveStreamNoiseReductionById( streamId,  isNoiseReduction );
+					reponseTxt = "OK";
+				}
+			}
+			break;
+		case HlsRpcUtil.UPD_NOISE_COMPENSATE_CODE:
+			{
+				Long streamId = q.getLong("streamId");
+				if ( streamId != null ) {
+					Boolean isNoiseReduction = q.getBoolean("isNoiseCompensate");
+					HlsLiveStreamMagr.INSTANCE().updateHlsLiveStreamNoiseReductionById( streamId,  isNoiseReduction );
+					reponseTxt = "OK";
+				}
 			}
 			break;
 		}

@@ -76,6 +76,7 @@ public class HlsLiveStream {
     
     private VolumeControl volumeCtl = null;
     private volatile boolean isNoiseReduction = true;
+    private volatile boolean isNoiseCompensate = true;
 
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
     		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
@@ -289,6 +290,15 @@ public class HlsLiveStream {
 	public void setNoiseReduction(boolean isNoiseReduction) {
 		this.isNoiseReduction = isNoiseReduction;
 	}
+	
+	// 是否产生白噪音进行噪音弥补
+	public boolean getIsNoiseCompansate() {
+		return isNoiseCompensate;
+	}
+	
+	public void setNoiseCompensate(boolean isNoiseCompensate) {
+		this.isNoiseCompensate = isNoiseCompensate;
+	}
 
 	//
 	public long getLastIndex() {
@@ -313,14 +323,22 @@ public class HlsLiveStream {
 				if( volumeCtl == null ) {
 					volumeCtl = new VolumeControl((int)sampleRate, frameLength);
 				}
-				
-				//
-				rawData = volumeCtl.gain( rawData );
-				
-				//
-				if ( isNoiseReduction ) {
-					rawData = volumeCtl.noise( rawData );
+
+				boolean isSilence = volumeCtl.isSilence(VolumeControl.silenceThresold, rawData);
+				if(isNoiseCompensate && isSilence) {
+					rawData = volumeCtl.generateWhiteNoise(rawData.length);
+					
+				}else {
+					//
+					rawData = volumeCtl.gain( rawData );
+					
+					//
+					if ( isNoiseReduction ) {
+						rawData = volumeCtl.noise( rawData );
+					}
 				}
+				
+				
 			}
     		
 	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, rawReserved );

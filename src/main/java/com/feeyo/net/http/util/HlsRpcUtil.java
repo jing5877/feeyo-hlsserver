@@ -23,6 +23,7 @@ public class HlsRpcUtil {
 	public static final int UPD_ALIAS_CODE 					= 11;
 	public static final int UPD_ADS_CODE 					= 12;
 	public static final int UPD_NOISE_REDUCTION_CODE 		= 13;
+	public static final int UPD_NOISE_COMPENSATE_CODE 		= 14;
 
 	
 	private static int timeout = 5;
@@ -117,6 +118,14 @@ public class HlsRpcUtil {
 		jsonObject.put("code", UPD_NOISE_REDUCTION_CODE);
 		jsonObject.put("streamId", streamId);
 		jsonObject.put("isNoiseReduction", isNoiseReduction);
+		return post(uri, jsonObject);
+	}
+	
+	public boolean updateNioseCompensate(String uri, long streamId, boolean isNoiseCompensate) {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put("code", UPD_NOISE_COMPENSATE_CODE);
+		jsonObject.put("streamId", streamId);
+		jsonObject.put("isNoiseCompensate", isNoiseCompensate);
 		return post(uri, jsonObject);
 	}
 	

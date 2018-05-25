@@ -151,6 +151,16 @@ public class HlsLiveStreamMagr {
     	return false;
     }
     
+    public boolean updateHlsLiveStreamNoiseCompensateById(long streamId, boolean isNoiseCompensate) {
+    	
+    	HlsLiveStream liveStream = streamIdToLiveStreamCache.get( streamId );
+    	if ( liveStream != null ) {
+    		liveStream.setNoiseCompensate(isNoiseCompensate);
+    		return true;
+    	}
+    	return false;
+    }
+    
     public boolean updateHlsLiveStreamAliasNamesById(long streamId, List<String> newAliasNames) {
     	
     	HlsLiveStream liveStream = streamIdToLiveStreamCache.get( streamId );
