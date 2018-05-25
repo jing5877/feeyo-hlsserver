@@ -24,7 +24,19 @@ public class VolumeControl {
 		return data;
 	}
 	
+	
+	private AudioFloatConverter conv = new AudioFloatConverter();
+	private SilenceDetector silenceDetector = new SilenceDetector();
 	public byte[] gain(byte[] data) {
+		
+		float[] out_buff = new float[ data.length ];
+		int out_offset = 0;
+		int out_len = data.length;
+		conv.toFloatArray(data, 0, out_buff, out_offset, out_len);
+		
+		double xdb = silenceDetector.soundPressureLevel(out_buff);
+		
+		
 		
 		short[] pcm = VolumeUtil.byteArray2shortArray(data);
 		double db = VolumeUtil.calMaxVolumeDbByAbs( pcm );

@@ -4,6 +4,15 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class VolumeUtil {
+	
+	
+	public static void main(String[] args) {
+		
+		
+		
+		
+		
+	}
 
 	public static byte[] autoControlVolume(byte[] data, double inc) {
 
@@ -29,6 +38,10 @@ public class VolumeUtil {
 			maxData = maxData > Math.abs(pcm)? maxData : Math.abs(pcm);
 		return 20 * Math.log10(maxData > 0 ? maxData / 32767 : maxData / -32768);
 	}
+	
+	
+	
+	
 	
 	public static byte[] shortArray2byteArray(short[] shorts) {
 		byte[] bytes = new byte[shorts.length * 2];
