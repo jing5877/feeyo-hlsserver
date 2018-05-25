@@ -35,7 +35,7 @@ public class VolumeUtil {
 		
 		double maxData = 0;
 		for(short pcm : pcmData)
-			maxData = maxData > Math.abs(pcm)? maxData : Math.abs(pcm);
+			maxData = Math.abs(maxData) > Math.abs(pcm)? maxData : pcm;
 		return 20 * Math.log10(maxData > 0 ? maxData / 32767 : maxData / -32768);
 	}
 	
