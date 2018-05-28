@@ -292,7 +292,7 @@ public class HlsLiveStream {
 	}
 	
 	// 是否产生白噪音进行噪音弥补
-	public boolean getIsNoiseCompansate() {
+	public boolean getIsNoiseCompensate() {
 		return isNoiseCompensate;
 	}
 	
