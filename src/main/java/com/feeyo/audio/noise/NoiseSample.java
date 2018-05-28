@@ -3,6 +3,7 @@ package com.feeyo.audio.noise;
 public class NoiseSample {
 
 	public static final byte[] WHITE_NOISE =
+			
 			new byte[] { 
 					(byte) 0x84, (byte) 0x00, (byte) 0x94, (byte) 0x00, (byte) 0x2c, (byte) 0x02, (byte) 0x34,
 					(byte) 0x01, (byte) 0x2c, (byte) 0x02, (byte) 0x54, (byte) 0x01, (byte) 0x8c, (byte) 0x01,

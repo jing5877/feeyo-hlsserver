@@ -30,6 +30,7 @@ public class AacTsSegmenter extends AbstractTsSegmenter {
 	public void initialize(float sampleRate, int sampleSizeInBits, int channels, int fps) {
 		
 		super.initialize(sampleRate, sampleSizeInBits, channels, fps);
+		
 		this.sampleRate = sampleRate;												// 采样率
 		this.frameNum = (TS_DURATION * (int)sampleRate) >> 10;									// AAC 帧的数目， faac以1024位为一帧
 		this.tsSegTime = 1.0F * (frameNum << 10) / (int)sampleRate;								// tsSegment的持续时间，以秒为单位

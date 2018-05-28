@@ -23,7 +23,7 @@ public class VolumeUtil {
 			power += element * element;
 		}
 		
-		//
+		// http://en.wikipedia.org/wiki/Root_mean_square
 		double value = Math.sqrt(power);
 		value = value / pcmData.length;
 		
