@@ -15,21 +15,38 @@ public class VolumeUtil {
 	}
 	
 	// dBSPL
-	public static double getSoundPressureLevel(short[] pcmData) {
-		
+	public static double getSoundPressureLevel(short[] shortBuf) {
 		// 计算音频缓冲器的局部（线性）能量
 		double power = 0.0D;
-		for (short element : pcmData) {
+		for (short element : shortBuf) {
 			power += element * element;
 		}
 		
 		// http://en.wikipedia.org/wiki/Root_mean_square
 		double value = Math.sqrt(power);
-		value = value / pcmData.length;
+		value = value / shortBuf.length;
 		
 		// 将线性转换为dB值
 		return 20.0 * Math.log10(value / 32767);
 	}
+	
+	
+	// dBSPL
+	public static double getSoundPressureLevel(float[] floatBuf) {
+		
+		// 计算音频缓冲器的局部（线性）能量
+		double power = 0.0D;
+		for (float element : floatBuf) {
+			power += element * element;
+		}
+		
+		double value = Math.pow(power, 0.5);
+		value = value / floatBuf.length;
+		
+		// 将线性转换为dB值
+		return 20.0 * Math.log10(value);
+	}
+	
 	
 	public static byte[] toByteArray(short[] shorts) {
 		byte[] bytes = new byte[shorts.length * 2];

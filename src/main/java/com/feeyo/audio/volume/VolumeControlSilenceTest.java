@@ -5,15 +5,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 public class VolumeControlSilenceTest {
+	
+	public static final double DEFAULT_SILENCE_THRESHOLD  = -70D;
 
 	public static void main(String[] args)  {
 		
 		int cc = 0;
+		int cc1 = 0;
 		
 		FileInputStream fileIs = null;
 		try {
 			
-			File file = new File( "/Users/zhuam/Downloads/20180525221955.wav" );
+			File file = new File( "/Users/zhuam/Downloads/20180525221955.wav" );  //20180525204847.wav     20180525221955.wav
 			fileIs = new FileInputStream( file );
 
 			byte[] pcmData = new byte[ (int)( file.length() - 44) ];
@@ -43,16 +46,22 @@ public class VolumeControlSilenceTest {
 				short[] chunkShortArr = VolumeUtil.toShortArray( chunkBuf );
 				
 				// 
-				boolean isSilence = VolumeUtil.getSoundPressureLevel( chunkShortArr ) < VolumeControl.DEFAULT_SILENCE_THRESHOLD;
+				boolean isSilence = VolumeUtil.getSoundPressureLevel( chunkShortArr ) < DEFAULT_SILENCE_THRESHOLD;
 				if ( isSilence ) {
 					cc++;
 				}
             	
-			
+				//
+				
+				float[] chunkFloatArr = VolumeUtil.toFloatArray( chunkBuf );
+				boolean isSilence1 = VolumeUtil.getSoundPressureLevel( chunkFloatArr ) < DEFAULT_SILENCE_THRESHOLD;
+				if ( isSilence1 ) {
+					cc1++;
+				}
             	
             }
             
-        	System.out.println("audio silence=" + cc);
+        	System.out.println("audio silence=" + cc + ", cc1=" + cc1);
 
 		} catch (IOException e) {
 			e.printStackTrace();
