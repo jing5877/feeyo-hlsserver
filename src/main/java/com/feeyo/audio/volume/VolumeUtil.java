@@ -6,12 +6,12 @@ import java.nio.ByteOrder;
 public class VolumeUtil {
 	
 	// max dBSPL
-	public static double getMaxSoundPressureLevel(short[] pcmData) {
+	public static double getMaxSoundPressureLevel(short[] shortBuf) {
 		
-		double maxData = 0;
-		for(short pcm : pcmData)
-			maxData = Math.abs(maxData) > Math.abs(pcm)? maxData : pcm;
-		return 20 * Math.log10(maxData > 0 ? maxData / 32767 : maxData / -32768);
+		double max = 0;
+		for(short s : shortBuf)
+			max = Math.abs(max) > Math.abs(s)? max : s;
+		return 20 * Math.log10(max > 0 ? max / 32767 : max / -32768);
 	}
 	
 	// dBSPL
@@ -48,38 +48,38 @@ public class VolumeUtil {
 	}
 	
 	
-	public static byte[] toByteArray(short[] shorts) {
-		byte[] bytes = new byte[shorts.length * 2];
-		ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(shorts);
-		return bytes;
+	public static byte[] toByteArray(short[] shortArr) {
+		byte[] byteArr = new byte[shortArr.length * 2];
+		ByteBuffer.wrap( byteArr ).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(shortArr);
+		return byteArr;
 	}
 
-	public static short[] toShortArray(byte[] bytes) {
-		short[] shorts = new short[bytes.length / 2];
-		ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
-		return shorts;
+	public static short[] toShortArray(byte[]  byteArr) {
+		short[] shortArr = new short[byteArr.length / 2];
+		ByteBuffer.wrap(byteArr).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortArr);
+		return shortArr;
 	}
 	
 	// PCM 16 bit, signed, little-endian
 	//
-	public static float[] toFloatArray(byte[] in_buff) {
-		float[] out_buff = new float[ in_buff.length / 2 ];
-		int ix = 0;
-		for (int ox = 0; ox < out_buff.length; ox++) {
-			out_buff[ox] = ((short) ((in_buff[ix++] & 0xFF) | (in_buff[ix++] << 8))) * (1.0f / 32767.0f);
+	public static float[] toFloatArray(byte[] byteArr) {
+		float[] floatArr = new float[ byteArr.length / 2 ];
+		int idx = 0;
+		for (int i = 0; i < floatArr.length; i++) {
+			floatArr[i] = ((short) ((byteArr[idx++] & 0xFF) | (byteArr[idx++] << 8))) * (1.0f / 32767.0f);
 		}
-		return out_buff;
+		return floatArr;
 	}
 	
-	public static byte[] toByteArray(float[] in_buff) {
-		byte[] out_buff = new byte[in_buff.length * 2];
-		int ox = 0;
-		for (int ix = 0; ix < in_buff.length; ix++) {
-			int x = (int) (in_buff[ix] * 32767.0);
-			out_buff[ox++] = (byte) x;
-			out_buff[ox++] = (byte) (x >>> 8);
+	public static byte[] toByteArray(float[] floatArr) {
+		byte[] byteArr = new byte[floatArr.length * 2];
+		int idx= 0;
+		for (int i = 0; i < floatArr.length; i++) {
+			int v = (int) (floatArr[i] * 32767.0);
+			byteArr[idx++] = (byte) v;
+			byteArr[idx++] = (byte) (v >>> 8);
 		}
-		return out_buff;
+		return byteArr;
 	}
 	
 }
