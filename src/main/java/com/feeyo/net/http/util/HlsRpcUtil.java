@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
@@ -49,11 +49,12 @@ public class HlsRpcUtil {
 	
 	private boolean post(String uri, JSONObject jsonObject) {
 		
+		CloseableHttpClient client = null;
 		try {
 			
 			String data = jsonObject.toJSONString();
 			
-			HttpClient client = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
+			client = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
 			HttpPost post = new HttpPost( uri );
 			post.addHeader("Content-type", "application/json");
 			post.setEntity(new StringEntity(data, "UTF-8"));
@@ -68,6 +69,9 @@ public class HlsRpcUtil {
 
 		} catch(IOException ioe) {
 			ioe.printStackTrace();
+		} finally {
+			if ( client != null )
+				try { client.close(); } catch (IOException e) {}
 		}
 		
 		return false;
