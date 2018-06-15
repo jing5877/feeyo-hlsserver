@@ -166,13 +166,13 @@ public class HlsLiveStreamMagr {
     	HlsLiveStream liveStream = streamIdToLiveStreamCache.get( streamId );
     	if ( liveStream != null ) {
     		
-    		for(String newName: newAliasNames) {
-    			aliasToStreamIdCache.put(newName, streamId);
-    		}
-    		
     		List<String> oldAliasNames = liveStream.getAliasNames();
     		for(String oldName: oldAliasNames) {
     			aliasToStreamIdCache.remove( oldName );
+    		}
+    		
+    		for(String newName: newAliasNames) {
+    			aliasToStreamIdCache.put(newName, streamId);
     		}
     		
     		liveStream.setAliasNames( newAliasNames );
@@ -191,6 +191,8 @@ public class HlsLiveStreamMagr {
 			
 			for(String aliasName : aliasNames)
 				aliasToStreamIdCache.put(aliasName, streamId);
+		} else {
+			updateHlsLiveStreamAliasNamesById(streamId, aliasNames);
 		}
 		
     }

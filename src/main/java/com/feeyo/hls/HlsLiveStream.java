@@ -75,7 +75,7 @@ public class HlsLiveStream {
     private AtomicLong tsIndexGen = new AtomicLong(4);										//  ads 1,2,3   normal 4...  
     
     private VolumeControl volumeCtl = null;
-    private volatile boolean isNoiseReduction = true;
+    private volatile boolean isNoiseReduction = false;
     private volatile boolean isNoiseCompensate = true;
 
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
