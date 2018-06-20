@@ -42,7 +42,7 @@ public class HlsVodHandler implements IRequestHandler {
 	private final Logger LOGGER = LoggerFactory.getLogger(HlsVodHandler.class);
 	
 	
-	private static final String regex = "^/vod/\\w+/\\w+\\.(m3u8|ts)$";
+	private static final String regex = "^/hls/vod/\\w+/\\w+\\.(m3u8|ts)$";
     private static final int VOD_CACHE_TIME = 1000 * 60;
 
     private ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -72,8 +72,8 @@ public class HlsVodHandler implements IRequestHandler {
 
         
         String[] path = request.getUri().split("/");
-        String alias = path[2];
-        final String reqFileName = path[3];
+        String alias = path[3];
+        final String reqFileName = path[4];
         
         Long streamId = HlsLiveStreamMagr.INSTANCE().getStreamIdByAlias(alias);
         if( streamId == null ) {
