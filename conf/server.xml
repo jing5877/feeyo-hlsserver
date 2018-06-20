@@ -1,0 +1,13 @@
+
+<hls>
+	<property name="http_port">8888</property>
+	<property name="udp_port">7000</property>
+	
+	
+	<!-- OSS -->
+	<property name="oss_endpoint"></property>
+	<property name="oss_bucketName"></property>
+	<property name="oss_accessKeyId"></property>
+	<property name="oss_accessKeySecret"></property>
+
+</hls>

@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.feeyo.hls.ts.segmenter.H264TsSegmenter;
 import com.feeyo.net.udp.packet.V5PacketType;
-import com.feeyo.net.udp.test.TestDataUtil;
+import com.feeyo.test.TestDataUtil;
 
 public class TsEncoderTest {
 	
@@ -26,7 +26,7 @@ public class TsEncoderTest {
 		
 		while(true) {
 			for(byte[] media : dataList) {
-				tsSegmenter.getTsBuf(V5PacketType.H264_STREAM, media);
+				tsSegmenter.getTsBuf(V5PacketType.H264_STREAM, media, null);
 			}
 		}
 		

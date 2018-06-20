@@ -22,8 +22,8 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
 
+import com.feeyo.HlsCtx;
 import com.feeyo.net.http.util.HttpUtil;
-import com.feeyo.util.Globals;
 
 import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.IF_MODIFIED_SINCE;
 
@@ -37,13 +37,24 @@ public class ResourceFileDownloadGetHandler implements IRequestHandler {
 	
 	private static final String READ_ONLY = "r";
 	private static final int HTTP_CACHE_SECONDS = 60;
+	
+	
+	@Override
+	public Type getType() {
+		return IRequestHandler.Type.OTHER;
+	}
+	
+	@Override
+	public boolean isFilted() {
+		return false;
+	}
 
 	public void execute(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 		
 		HttpRequest request = (DefaultHttpRequest) e.getMessage();
 		String uri = request.getUri();
 		
-		final String path = Globals.getHomeDirectory() + File.separator + "resources";
+		final String path = HlsCtx.INSTANCE().getHomePath() + File.separator + "resources";
 		String fileName = path + uri;
 
 		RandomAccessFile raf;
@@ -126,16 +137,6 @@ public class ResourceFileDownloadGetHandler implements IRequestHandler {
 				channelFuture.getChannel().close();
 			}
 		}
-	}
-	
-	@Override
-	public boolean isFilted() {
-		return false;
-	}
-
-	@Override
-	public Type getType() {
-		return IRequestHandler.Type.OTHER;
 	}
 	
 }

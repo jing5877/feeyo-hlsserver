@@ -1,5 +1,7 @@
 package com.feeyo.hls.ts;
 
+import java.text.DecimalFormat;
+
 /**
  * hls ts segment
  *
@@ -64,13 +66,32 @@ public class TsSegment {
 		this.lasttime = lasttime;
 	}
 	
+	public static String formatSize(long size) {
+		double kb = size / 1024.0;
+		double mb = ((size / 1024.0) / 1024.0);
+		double gb = (((size / 1024.0) / 1024.0) / 1024.0);
+		double tb = ((((size / 1024.0) / 1024.0) / 1024.0) / 1024.0);
+		DecimalFormat decimalFormat = new DecimalFormat("0.00");
+		if (tb > 1)
+			return decimalFormat.format(tb).concat("TB");
+		if (gb > 1)
+			return decimalFormat.format(gb).concat("GB");
+		if (mb > 1)
+			return decimalFormat.format(mb).concat("MB");
+		if (kb > 1)
+			return decimalFormat.format(kb).concat("KB");
+		return decimalFormat.format((double) size).concat("B");
+	}
+	
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer(80);
 		sb.append("name=").append( name ).append(", ");
 		sb.append("ctime=").append( ctime ).append(", ");
 		sb.append("duration=").append( duration ).append(", ");
+		sb.append("size=").append( formatSize(data.length) ).append(", ");
 		sb.append("isAds=").append( isAds );
+		
 		
 		return sb.toString();
 	}

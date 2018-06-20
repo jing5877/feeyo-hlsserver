@@ -1,19 +1,21 @@
 package com.feeyo.hls;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.commons.lang.ArrayUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.feeyo.audio.codec.Decoder;
+import com.feeyo.audio.codec.PcmuDecoder;
+import com.feeyo.audio.volume.VolumeControl;
+import com.feeyo.hls.ads.AdsMagr;
 import com.feeyo.hls.ts.TsSegment;
 import com.feeyo.hls.ts.segmenter.AacH264MixedTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AacTranscodingTsSegmenter;
@@ -21,7 +23,7 @@ import com.feeyo.hls.ts.segmenter.AacTsSegmenter;
 import com.feeyo.hls.ts.segmenter.AbstractTsSegmenter;
 import com.feeyo.hls.ts.segmenter.H264TranscodingTsSegmenter;
 import com.feeyo.hls.ts.segmenter.H264TsSegmenter;
-import com.google.common.primitives.Longs;
+import com.feeyo.net.udp.packet.V5PacketType;
 
 
 /**
@@ -36,10 +38,17 @@ import com.google.common.primitives.Longs;
 public class HlsLiveStream {
 	
 	private static Logger LOGGER = LoggerFactory.getLogger( HlsLiveStream.class );
+	
+	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 1;			
+	private static final int TS_TIMEOUT_MS = SESSION_TIMEOUT_MS * 5;			
+	
+	// pcmu decode
+	private static Decoder pcmuDecoder = new PcmuDecoder();
     
     // id -> client session
     private Map<String, HlsClientSession> clientSessions = new ConcurrentHashMap<String, HlsClientSession>();
     
+    private long ctime;
     private long mtime;
     
     private long streamId;
@@ -55,30 +64,25 @@ public class HlsLiveStream {
     
     // asias
     private List<String> aliasNames;
+    
+    private long rawCount = 0;
 
     //
     private AbstractTsSegmenter tsSegmenter = null;
-
-    private ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
     
     //
     private Map<Long, TsSegment> tsSegments = new ConcurrentHashMap<Long, TsSegment>(); 		
-    private AtomicLong tsSegmentIndexGen = new AtomicLong(4);										// 4...
-    private List<Long> tsSegmentIndexs = new ArrayList<Long>();
-    private ReadWriteLock _lock = new ReentrantReadWriteLock();
+    private AtomicLong tsIndexGen = new AtomicLong(4);										//  ads 1,2,3   normal 4...  
     
-    // ADS
-    private static AdsMagr adsMagr;												// 1,2,3
-    
-    static {
-    	if (adsMagr == null)
-            adsMagr = new AdsMagr();
-    }
-    
+    private VolumeControl volumeCtl = null;
+    private volatile boolean isNoiseReduction = false;
+    private volatile boolean isNoiseCompensate = true;
+
     public HlsLiveStream(Long streamId, Integer streamType, List<String> aliasNames, 
     		Float sampleRate, Integer sampleSizeInBits, Integer channels, Integer fps) {
         
-    	this.mtime = System.currentTimeMillis();
+    	this.ctime = System.currentTimeMillis();
+    	this.mtime = ctime;
     	
     	this.streamId = streamId;
     	this.streamType = streamType;
@@ -110,72 +114,80 @@ public class HlsLiveStream {
     	}
         
         tsSegmenter.initialize(sampleRate, sampleSizeInBits, channels, fps);
-
-        //
-        scheduledExecutor.scheduleAtFixedRate(new Runnable() {
-
-			@Override
-			public void run() {
-				
-				long minTsIndex = -1;
-				
-				for(HlsClientSession clientSession : clientSessions.values()) {
-					long[] tsIndexs = clientSession.getTsIndexs();
-					if ( tsIndexs != null ) {
-						long tmpTsIndex = Longs.min(tsIndexs);
-						if ( minTsIndex == -1 || minTsIndex > tmpTsIndex )  {
-							minTsIndex = tmpTsIndex;
-						} 
-					}
-				}
-
-				// delete
-				if ( minTsIndex - 1 > 3 ) {
-					
-					for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
-						long idx =  entry.getKey();
-						TsSegment tsSegment = entry.getValue();
-						if ( idx < minTsIndex && ( System.currentTimeMillis() - tsSegment.getLasttime() > 30 * 1000 ) ) {
-							tsSegments.remove( idx );
-							
-							 LOGGER.info("remove ts= {}, minTsIndex= {} ", tsSegment, minTsIndex);
-						}
-					}
-				}
-			}
-    		
-    	}, 10, 10, TimeUnit.SECONDS);
     }
     
+    
+    //
+    public void removeExpireSessionAndTsSegments() {
+    	
+    	long now = System.currentTimeMillis();
+    	
+    	// remove expire SESSION
+		for (HlsClientSession session : clientSessions.values()) {
+			// remove expire session
+			if (now - session.getMtime() > SESSION_TIMEOUT_MS) {
+				clientSessions.remove( session.getId() );
+				LOGGER.info("##streamId={},  remove session sid:{},  cache size={} ", streamId, session.getId(), clientSessions.size());
+			}
+		}
+  
+		// remove expire TS SEGMENT 
+		for(Map.Entry<Long, TsSegment> entry:  tsSegments.entrySet() ) {
+			long tsIndex =  entry.getKey();
+			TsSegment tsSegment = entry.getValue();
+			
+			if ( ((now - tsSegment.getCtime()) > TS_TIMEOUT_MS) && tsSegments.size() > 5 ) {
+				tsSegments.remove( tsIndex );
+				LOGGER.info("##streamId={},  remove ts index={},  cache size={} ", streamId, tsIndex, tsSegments.size());
+			} 
+		}
+    }
     
     // length= 3 ~ 5
     public long[] fetchTsIndexs() {
-    	
-    	//List<TsSegment> adTsSegments = hlsAdsWatchdog.getAdsTsSegments();
-    	
-    	if ( tsSegmentIndexs.size() < 3)  {
+    	// 
+    	Set<Long> indexSET = tsSegments.keySet();
+    	if ( indexSET.size() < 3 ) {
     		return null;
-    	}
+    	}	
     	
     	//
-    	try {
-    		_lock.readLock().lock();
-    		long[] indexs = Longs.toArray( tsSegmentIndexs );
-    		return indexs;
+    	Long[] indexArr = indexSET.toArray(new Long[indexSET.size()]);
+    	Arrays.sort( indexArr );
+    	
+    	if ( indexArr.length > 5 ) {
+    		Long[] tmpArr = new Long[5];
+    		System.arraycopy(indexArr, indexArr.length - 5, tmpArr, 0, 5);
     		
-    	} finally {
-    		_lock.readLock().unlock();
+    		return ArrayUtils.toPrimitive( tmpArr );
+    		
+    	} else {
+    		return ArrayUtils.toPrimitive( indexArr );
     	}
     }
     
-    public TsSegment fetchTsSegment(long index) {
+    public TsSegment fetchTsSegmentByIndex(long index) {
+    	
     	if ( index < 0 )
     		return null;
     	
     	TsSegment tsSegment = null;
     	if ( index < 4 ) {
-    		List<TsSegment> adTsSegments = adsMagr.getAdsTsSegments("audio", 8000F, 16, 1, 25);
-    		tsSegment = adTsSegments.get( (int)index - 1);
+    		
+    		String type = "audio";
+    		switch( streamType ) {
+        	case HlsLiveStreamType.YUV:
+        	case HlsLiveStreamType.H264:
+        		type = "video";
+        		break;
+        	case HlsLiveStreamType.AAC_H264_MIXED:
+        		type = "mixed";
+        		break;
+        	}
+    		
+    		List<TsSegment> adTsSegments = AdsMagr.getTsSegments(type, sampleRate, sampleSizeInBits, channels, fps);
+    		tsSegment = adTsSegments.get((int)index - 1);
+    		
     	} else {
     		tsSegment = tsSegments.get( index );
     	}
@@ -189,22 +201,17 @@ public class HlsLiveStream {
     
     //
     public HlsClientSession newClientSession() {
+    	
+    	// 避免在TS未准备好的情况下， client 数膨胀
+    	if ( tsSegments.size() < 3 ) {
+    		return null;
+    	}
         
         HlsClientSession clientSession = new HlsClientSession(this);
         clientSessions.put(clientSession.getId(), clientSession);
         
-        LOGGER.info("add client: " + clientSession.toString());
+        LOGGER.info("##streamId={},  add client:{} ", streamId, clientSession);
         return clientSession;
-    }
-    
-    
-    public void removeClientSessionById(String sessionId) {
-    	
-        HlsClientSession clientSession = clientSessions.remove(sessionId);
-        if ( clientSession != null ) {
-        	
-        	LOGGER.info("remove hls client: " + clientSession.toString() + " left: " + clientSessions.size());
-        }
     }
     
     public HlsClientSession getClientSessionsById(String id) {
@@ -222,13 +229,25 @@ public class HlsLiveStream {
         
         if ( tsSegmenter != null)
         	tsSegmenter.close();
+        
+        if ( tsSegments != null ) {
+        	tsSegments.clear();
+        }
     }
+    
+    public long getRawCount() {
+		return rawCount;
+	}
 
-    public long getMtime() {
+	public long getMtime() {
         return mtime;
     }
 
-    public long getStreamId() {
+    public long getCtime() {
+		return ctime;
+	}
+
+	public long getStreamId() {
         return streamId;
     }
     
@@ -262,32 +281,71 @@ public class HlsLiveStream {
 		this.aliasNames = aliasNames;
 	}
 
-
+	// 是否降噪处理
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	public synchronized void addAvStream(byte rawType, byte[] rawReserved, byte[] rawData) {
+	public boolean getIsNoiseReduction() {
+		return isNoiseReduction;
+	}
+
+	public void setNoiseReduction(boolean isNoiseReduction) {
+		this.isNoiseReduction = isNoiseReduction;
+	}
+	
+	// 是否产生白噪音进行噪音弥补
+	public boolean getIsNoiseCompensate() {
+		return isNoiseCompensate;
+	}
+	
+	public void setNoiseCompensate(boolean isNoiseCompensate) {
+		this.isNoiseCompensate = isNoiseCompensate;
+	}
+
+	//
+	public long getLastIndex() {
+		return this.tsIndexGen.get();
+	}
+	
+	//
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	public synchronized void addAvStream(byte rawType, byte[] rawData, byte[] rawReserved, int frameLength) {
     	
-    	this.mtime = System.currentTimeMillis();
+    	long now = System.currentTimeMillis();
+    	
+    	this.mtime = now;
+    	this.rawCount++;
 
     	if( tsSegmenter != null) {
     		
-	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData );
-	        if ( tsData != null) {
+    		// PCM transcode & Audio noise reduce / vol gain
+    		if (V5PacketType.PCM_STREAM == rawType) {
+    			rawData = pcmuDecoder.process( rawData );
+				
+				if( volumeCtl == null ) {
+					volumeCtl = new VolumeControl((int)sampleRate, frameLength);
+				}
 
-	        	long tsIndex = tsSegmentIndexGen.getAndIncrement();
+				// 增益
+				rawData = volumeCtl.gain( rawData );
+				
+				// 降噪
+				if ( isNoiseReduction ) {
+					rawData = volumeCtl.noise( rawData );
+				}
+				
+				// 注入白噪声
+				if( isNoiseCompensate ) {
+					rawData = volumeCtl.silenceDetection( rawData );
+				}
+			}
+    		
+	        byte[] tsData = tsSegmenter.getTsBuf( rawType, rawData, rawReserved );
+	        if ( tsData != null) {
+	        	
+	        	long tsIndex = tsIndexGen.getAndIncrement();
 	            TsSegment tsSegment = new TsSegment(  tsIndex +".ts", tsData, tsSegmenter.getTsSegTime(), false);
 	            tsSegments.put(tsIndex, tsSegment);
 	            
-	            LOGGER.info("add ts {} ", tsSegment);
-	            
-	            try {
-	        		_lock.writeLock().lock();
-		            if ( tsSegmentIndexs.size() >=5 ) {
-		            	tsSegmentIndexs.remove(0);
-		            }
-		            tsSegmentIndexs.add( tsIndex );
-	            } finally {
-	            	_lock.writeLock().unlock();
-	            }
+	            LOGGER.info("##streamId={},  add ts {}", streamId, tsSegment);
 	        }
     	}
     }

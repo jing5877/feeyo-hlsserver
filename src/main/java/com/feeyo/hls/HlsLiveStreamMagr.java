@@ -1,45 +1,48 @@
 package com.feeyo.hls;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.feeyo.audio.codec.Decoder;
-import com.feeyo.audio.codec.PcmuDecoder;
 import com.feeyo.net.udp.packet.V5Packet;
 import com.feeyo.net.udp.packet.V5PacketType;
+import com.feeyo.util.DefaultThreadFactory;
 
 /**
- * HLS LIVE Stream 管理
+ * HLS LIVE Stream MANAGE
  *
  */
 public class HlsLiveStreamMagr {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger( HlsLiveStreamMagr.class );
 	
-    private static HlsLiveStreamMagr instance;
+    private static volatile HlsLiveStreamMagr instance;
     
-	private static final int SESSION_TIMEOUT_MS = 1000 * 60 * 2;			//
-	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		//
+	private static final int LIVE_STREAM_TIMEOUT_MS = 1000 * 60 * 10;		// ten minute
 	
-    private static ExecutorService executor = Executors.newFixedThreadPool(10);
-    private static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
-
+	// dispatch thread pool
+    private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(10, 100, 60 * 1000L, 
+    		TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(5000), new DefaultThreadFactory("HlsLsMagr-", true));
     
+    private static ScheduledExecutorService scheduledThreadPoolExecutor = Executors.newScheduledThreadPool(3);
+
     // alias -> streamId 
 	private static Map<String, Long> aliasToStreamIdCache = new ConcurrentHashMap<String, Long>();
     
     // streamId -> live stream
     private static Map<Long, HlsLiveStream> streamIdToLiveStreamCache = new ConcurrentHashMap<Long, HlsLiveStream>();
+    
     
     private HlsLiveStreamMagr() {}
     
@@ -59,40 +62,46 @@ public class HlsLiveStreamMagr {
     
     public void startup() {
     	
-		// delete expired session
-    	scheduledExecutor.scheduleAtFixedRate( new Runnable() {
+		// delete expired liveStream & clientSession
+    	scheduledThreadPoolExecutor.scheduleAtFixedRate( new Runnable() {
 
 			@Override
 			public void run() {
 				
-				List<Long> expiredStreamIds = new ArrayList<>();
-            
-            	long now = System.currentTimeMillis();
-                for (HlsLiveStream hlsLiveStream : streamIdToLiveStreamCache.values()) {
-                    
-                	if (now - hlsLiveStream.getMtime() > LIVE_STREAM_TIMEOUT_MS) {
-                        hlsLiveStream.close();
-                        expiredStreamIds.add(hlsLiveStream.getStreamId());
-                        
-                    } else {
-                        Map<String, HlsClientSession> clientSessions = hlsLiveStream.getAllClientSession();
-                        for (String sessionId : clientSessions.keySet()) {
-                            HlsClientSession clientSession = clientSessions.get(sessionId);
-                            if ( now - clientSession.getMtime() > SESSION_TIMEOUT_MS ) {
-                                hlsLiveStream.removeClientSessionById(sessionId);
-                            }
-                        }
-                    }
-                }
-
-                for (Long tmpStreamId : expiredStreamIds) {
-                    streamIdToLiveStreamCache.remove(tmpStreamId);
-                    Iterator<Long> iter = aliasToStreamIdCache.values().iterator();
-                    while(iter.hasNext()) {
-                    	if(tmpStreamId == iter.next())
-                    		iter.remove();
-                    }
-                }
+				// expired
+				try {
+	            	
+					long now = System.currentTimeMillis();
+	            	
+	            	Iterator<HlsLiveStream> it = streamIdToLiveStreamCache.values().iterator();
+	            	while( it.hasNext() ) {
+	            		
+	            		HlsLiveStream liveStream =  it.next();
+	            		if (now - liveStream.getMtime() > LIVE_STREAM_TIMEOUT_MS) {
+		                       
+	                        //
+	                        long streamId = liveStream.getStreamId();
+	                        streamIdToLiveStreamCache.remove(streamId);
+	                        Iterator<Long> iter = aliasToStreamIdCache.values().iterator();
+	                        while(iter.hasNext()) {
+	                        	if(streamId == iter.next())
+	                        		iter.remove();
+	                        }
+	                        
+	                        //
+	                        liveStream.close();
+	
+	                    } else {
+	                    	// 
+	                    	liveStream.removeExpireSessionAndTsSegments();
+	                    }
+	            		
+	            	}
+	                
+				} catch(Throwable e) {
+					LOGGER.warn("live stream task err:", e);
+				}
+              
 			}
     		
     	}, 10, 10, TimeUnit.SECONDS);
@@ -101,13 +110,18 @@ public class HlsLiveStreamMagr {
 
     public void close() {
     	
-        if (executor != null) {
-            executor.shutdown();
+        if (threadPoolExecutor != null) {
+            threadPoolExecutor.shutdown();
         }
         
-        if ( scheduledExecutor != null ) {
-        	scheduledExecutor.shutdown();
+        if ( scheduledThreadPoolExecutor != null ) {
+        	scheduledThreadPoolExecutor.shutdown();
         }
+    }
+    
+    
+    public HlsLiveStream getHlsLiveStreamById(Long id) {
+    	return streamIdToLiveStreamCache.get( id );
     }
     
     public HlsLiveStream getHlsLiveStreamByAlias(String alias) {
@@ -121,18 +135,44 @@ public class HlsLiveStreamMagr {
     	return aliasToStreamIdCache.get(alias);
     }
     
+    public Collection<HlsLiveStream> getAllLiveStream(){
+    	return streamIdToLiveStreamCache.values();
+    }
+    
+    
+    
+    public boolean updateHlsLiveStreamNoiseReductionById(long streamId, boolean isNoiseReduction) {
+    	
+    	HlsLiveStream liveStream = streamIdToLiveStreamCache.get( streamId );
+    	if ( liveStream != null ) {
+    		liveStream.setNoiseReduction(isNoiseReduction);
+    		return true;
+    	}
+    	return false;
+    }
+    
+    public boolean updateHlsLiveStreamNoiseCompensateById(long streamId, boolean isNoiseCompensate) {
+    	
+    	HlsLiveStream liveStream = streamIdToLiveStreamCache.get( streamId );
+    	if ( liveStream != null ) {
+    		liveStream.setNoiseCompensate(isNoiseCompensate);
+    		return true;
+    	}
+    	return false;
+    }
+    
     public boolean updateHlsLiveStreamAliasNamesById(long streamId, List<String> newAliasNames) {
     	
     	HlsLiveStream liveStream = streamIdToLiveStreamCache.get( streamId );
     	if ( liveStream != null ) {
     		
-    		for(String newName: newAliasNames) {
-    			aliasToStreamIdCache.put(newName, streamId);
-    		}
-    		
     		List<String> oldAliasNames = liveStream.getAliasNames();
     		for(String oldName: oldAliasNames) {
     			aliasToStreamIdCache.remove( oldName );
+    		}
+    		
+    		for(String newName: newAliasNames) {
+    			aliasToStreamIdCache.put(newName, streamId);
     		}
     		
     		liveStream.setAliasNames( newAliasNames );
@@ -151,7 +191,10 @@ public class HlsLiveStreamMagr {
 			
 			for(String aliasName : aliasNames)
 				aliasToStreamIdCache.put(aliasName, streamId);
+		} else {
+			updateHlsLiveStreamAliasNamesById(streamId, aliasNames);
 		}
+		
     }
     
     public void closeHlsLiveStream(long streamId) {
@@ -187,53 +230,60 @@ public class HlsLiveStreamMagr {
     
 	public void handleStream(final V5Packet packet) {
 
-		executor.execute(new Runnable() {
-
-			Decoder pcmuDecoder = new PcmuDecoder();
-
-			@Override
-			public void run() {
-				long packetSender = packet.getPacketSender();
-				byte packetType = packet.getPacketType();
-				byte[] packetReserved = packet.getPacketReserved();
-
-				HlsLiveStream liveStream = streamIdToLiveStreamCache.get(packetSender);
-				if (liveStream != null) {
-
-					boolean isPass = false;
-					if ( liveStream.getStreamType() == HlsLiveStreamType.AAC && packetType == V5PacketType.AAC_STREAM ) {
-						isPass = true;
-						
-					} else if ( liveStream.getStreamType() == HlsLiveStreamType.PCM && packetType == V5PacketType.PCM_STREAM ) {
-						isPass = true;
-
-					} else if (liveStream.getStreamType() == HlsLiveStreamType.H264 && packetType == V5PacketType.H264_STREAM ) {
-						isPass = true;
-						
-					} else if (liveStream.getStreamType() == HlsLiveStreamType.YUV && packetType == V5PacketType.YUV422_STREAM ) {
-						isPass = true;
-
-					} else if (liveStream.getStreamType() == HlsLiveStreamType.AAC_H264_MIXED
-							&& (packetType == V5PacketType.H264_STREAM || packetType == V5PacketType.AAC_STREAM)) {
-						isPass = true;
-					}
-
-					if ( isPass ) {
-						byte[] packetData = packet.getPacketData();
-						if (V5PacketType.PCM_STREAM == packet.getPacketType())
-							packetData = pcmuDecoder.process(packet.getPacketData());
-						liveStream.addAvStream(packetType, packetReserved, packetData);
+		
+		try {		
+			threadPoolExecutor.execute(new Runnable() {
+	
+				@Override
+				public void run() {
+					long packetSender = packet.getPacketSender();
+					byte packetType = packet.getPacketType();
+					byte[] packetData = packet.getPacketData();
+					byte[] packetReserved = packet.getPacketReserved();
+					int packetLength = packet.getPacketLength();
+	
+					HlsLiveStream liveStream = streamIdToLiveStreamCache.get(packetSender);
+					if (liveStream != null) {
+	
+						boolean isPass = false;
+						if ( liveStream.getStreamType() == HlsLiveStreamType.AAC && packetType == V5PacketType.AAC_STREAM ) {
+							isPass = true;
+							
+						} else if ( liveStream.getStreamType() == HlsLiveStreamType.PCM && packetType == V5PacketType.PCM_STREAM ) {
+							isPass = true;
+	
+						} else if (liveStream.getStreamType() == HlsLiveStreamType.H264 && packetType == V5PacketType.H264_STREAM ) {
+							isPass = true;
+							
+						} else if (liveStream.getStreamType() == HlsLiveStreamType.YUV && packetType == V5PacketType.YUV422_STREAM ) {
+							isPass = true;
+	
+						} else if (liveStream.getStreamType() == HlsLiveStreamType.AAC_H264_MIXED
+								&& (packetType == V5PacketType.H264_STREAM || packetType == V5PacketType.AAC_STREAM)) {
+							isPass = true;
+						}
+	
+						if ( isPass ) {
+							
+							liveStream.addAvStream(packetType, packetData, packetReserved, packetLength);
+							
+						} else {
+							LOGGER.warn("livestream no pass err: streamId={}, streamType={}, packetType={}", liveStream.getStreamId(),
+									liveStream.getStreamType(), packetType);
+						}
 						
 					} else {
-						LOGGER.warn("livestream no pass err: streamId={}, streamType={}, packetType={}", liveStream.getStreamId(),
-								liveStream.getStreamType(), packetType);
+						LOGGER.warn("livestream not found err: packetSender={}, packetType={}", packetSender, packetType);
 					}
-					
-				} else {
-					LOGGER.warn("livestream not found err: packetSender={}, packetType={}", packetSender, packetType);
 				}
-			}
-		});
+			});
+			
+		} catch (RejectedExecutionException rejectException) {	
+			LOGGER.warn("process thread pool is full, reject, active={} poolSize={} corePoolSize={} maxPoolSize={} taskCount={}",
+					threadPoolExecutor.getActiveCount(), threadPoolExecutor.getPoolSize(),
+					threadPoolExecutor.getCorePoolSize(), threadPoolExecutor.getMaximumPoolSize(),
+					threadPoolExecutor.getTaskCount());						
+		}		
 	}
-
+	
 }

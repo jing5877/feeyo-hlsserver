@@ -25,7 +25,7 @@ public class HttpServer {
 	private ThreadPoolExecutor bossExecutor =  new ThreadPoolExecutor(6, 32, 30L, TimeUnit.SECONDS, 
 			new SynchronousQueue<Runnable>(), new NamedThreadFactory("NS-BOSS-") );
 	
-	private ThreadPoolExecutor workerExecutor =  new ThreadPoolExecutor(6, 32, 30L, TimeUnit.SECONDS, 
+	private ThreadPoolExecutor workerExecutor =  new ThreadPoolExecutor(6, 100, 30L, TimeUnit.SECONDS, 
 			new SynchronousQueue<Runnable>(), new NamedThreadFactory("NS-BOSS-") );
 
 	public void startup(int port) {		

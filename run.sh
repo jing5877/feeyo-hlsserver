@@ -50,7 +50,7 @@ pidFile="$FEEYO_HOME/bin/run.pid"
 #===========================================================================================
 # JVM Configuration
 #===========================================================================================
-JAVA_OPTS="${JAVA_OPTS} -server -Xms6g -Xmx6g -Xmn3g -XX:PermSize=128m -XX:MaxPermSize=128m -XX:SurvivorRatio=18 -XX:MaxDirectMemorySize=6g"
+JAVA_OPTS="${JAVA_OPTS} -server -Xms2g -Xmx2g -Xmn1g -XX:PermSize=128m -XX:MaxPermSize=128m -XX:SurvivorRatio=18 -XX:MaxDirectMemorySize=1g"
 JAVA_OPTS="${JAVA_OPTS} -XX:+UseConcMarkSweepGC -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=70"
 JAVA_OPTS="${JAVA_OPTS} -XX:+UseCMSCompactAtFullCollection -XX:CMSFullGCsBeforeCompaction=5"
 JAVA_OPTS="${JAVA_OPTS} -XX:+CMSParallelRemarkEnabled -XX:CMSMaxAbortablePrecleanTime=5000"

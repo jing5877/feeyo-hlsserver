@@ -13,6 +13,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
@@ -27,15 +28,18 @@ import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.feeyo.net.http.filter.AuthCheckFilter;
 import com.feeyo.net.http.filter.HlsTrafficFilter;
 import com.feeyo.net.http.filter.IFilter;
-import com.feeyo.net.http.filter.WhiteHostCheckFilter;
+import com.feeyo.net.http.handler.AuthHandler;
 import com.feeyo.net.http.handler.HlsLiveHandler;
+import com.feeyo.net.http.handler.HlsStreamsHandler;
 import com.feeyo.net.http.handler.HlsManageHandler;
 import com.feeyo.net.http.handler.HlsVodHandler;
 import com.feeyo.net.http.handler.IRequestHandler;
 import com.feeyo.net.http.handler.IRequestHandler.Type;
 import com.feeyo.net.http.handler.ResourceFileDownloadGetHandler;
+import com.feeyo.net.http.handler.WelcomeHandler;
 import com.feeyo.net.http.util.PathTrie;
 
 /**
@@ -57,17 +61,21 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
     public HttpServerRequestHandler() {
     	super();    	
     	
-    	// 注册处理器
+    	// handlers
+    	registerHandler(HttpMethod.GET, "/", new WelcomeHandler());	
 		registerHandler(HttpMethod.GET, "/hls/*/*", new HlsLiveHandler());
 		registerHandler(HttpMethod.GET, "/hls/vod/*/*", new HlsVodHandler());
-		
-		registerHandler(HttpMethod.POST, "/hls/manage", new HlsManageHandler());
 
-		// 流控
-		registerFilter(new HlsTrafficFilter(), Type.HLS);
+		registerHandler(HttpMethod.POST, "/hls/manage", new HlsManageHandler());
+		registerHandler(HttpMethod.GET, "/hls/streams", new HlsStreamsHandler());
+
+		//  login & logout ...
+		registerHandler(HttpMethod.GET, "/auth", new AuthHandler());	
 		
-		// 白名单
-		registerFilter(new WhiteHostCheckFilter(), Type.MANAGE);
+		
+		// filters
+		registerFilter(new HlsTrafficFilter(), Type.HLS);		
+		registerFilter(new AuthCheckFilter(), Type.VM, Type.API);		
     }
 
     private void registerFilter(IFilter filter, IRequestHandler.Type ...types) {
@@ -139,24 +147,6 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
     @Override
 	public void messageReceived(final ChannelHandlerContext ctx, final MessageEvent e) throws Exception {
 
-    	processHttpRequest(ctx, e);
-    	
-	}
-    
-    private boolean processFilter(ChannelHandlerContext ctx, MessageEvent messageEvent, IRequestHandler requestHandler) {    	
-    	List<IFilter> filters = filterChain.get(requestHandler.getType());
-		for (IFilter filter : filters) {
-			if (filter.doFilter(ctx, messageEvent)) {
-				continue;
-			} else {
-				return false;
-			}
-		}
-		return true;
-    }
-    
-    private void processHttpRequest(ChannelHandlerContext ctx, MessageEvent e) {
-    	
     	HttpRequest request = (DefaultHttpRequest) e.getMessage();
     	
     	String uri = request.getUri();
@@ -165,11 +155,11 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 		if ( requestHandler != null ) {	
 			
 			boolean isFilted = requestHandler.isFilted();
-			if ( isFilted && !processFilter(ctx, e, requestHandler) ) {
+			if ( isFilted && !isFilter(ctx, e, requestHandler) ) {
 
 				IRequestHandler.Type type = requestHandler.getType();	
 				if ( type == IRequestHandler.Type.VM ) {
-					sendRedirect(ctx, "/v1/view/login");
+					sendRedirect(ctx, "/auth?action=page");
 					
 				} else {
 					HttpResponse response = buildDefaultResponse("", HttpResponseStatus.UNAUTHORIZED);
@@ -202,6 +192,28 @@ public class HttpServerRequestHandler extends SimpleChannelUpstreamHandler {
 			HttpResponse response = buildDefaultResponse("", HttpResponseStatus.NOT_FOUND);
 			sendResponse(ctx, response);
 		}    	
+	}
+    
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
+    	super.exceptionCaught(ctx, e);
+    	
+    	//ignore
+    }
+    
+    
+    private boolean isFilter(ChannelHandlerContext ctx, MessageEvent messageEvent, IRequestHandler requestHandler) {    	
+    	List<IFilter> filters = filterChain.get(requestHandler.getType());
+    	if ( filters != null ) {
+			for (IFilter filter : filters) {
+				if (filter.doFilter(ctx, messageEvent)) {
+					continue;
+				} else {
+					return false;
+				}
+			}
+    	}
+		return true;
     }
     
     private HttpResponse buildErrorResponse(String errMsg) {

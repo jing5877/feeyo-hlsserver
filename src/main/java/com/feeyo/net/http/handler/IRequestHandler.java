@@ -11,8 +11,9 @@ public interface IRequestHandler {
 		API(2),
 		HLS(3),
 		MANAGE(4),
-		OTHER(5);
-
+		AUTH(5),
+		OTHER(6);
+			
 		private final int value;
 		
 		Type(int value){

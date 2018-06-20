@@ -4,25 +4,15 @@ public class V5PacketErrorException extends Exception {
 
 	private static final long serialVersionUID = -143989805382831875L;
 
+	private byte[] data;
 
-	public V5PacketErrorException(String errorCode) {
+	public V5PacketErrorException(String errorCode, byte[] data) {
 		super(errorCode);
+		this.data = data;
 	}
 
-	public V5PacketErrorException(String errorCode, Throwable cause) {
-		super(errorCode, cause);
+	public byte[] getData() {
+		return data;
 	}
 
-	public V5PacketErrorException(String errorCode, String errorDesc) {
-		super(errorCode + ":" + errorDesc);
-	}
-
-	public V5PacketErrorException(String errorCode, String errorDesc, Throwable cause) {
-		super(errorCode + ":" + errorDesc, cause);
-	}
-
-	public V5PacketErrorException(Throwable cause) {
-		super(cause);
-	}
-	
 }

@@ -1,0 +1,39 @@
+<html>
+	<head>
+	    <link rel='stylesheet' type='text/css' href='/static/css/hls.css' />
+	    <title>Welcome</title>
+	</head>
+	<body>
+	
+	    #include("/include/navbar.html")
+	
+	    <div class="container" style="padding-top:1px;">
+	    
+	    	<div class="panel panel-default">
+	    		
+	    		<div class="panel-heading">
+	    			<h3 class="panel-title"> HLS-SERVER </h3>
+	    				@powerby variflight
+	    		</div>
+	    	
+	    		<div class="panel-body">
+	    		
+	    		 	<table class="table">
+
+			            <tbody>
+			                <tr>
+			                    <td>
+			                    	support HLS
+			                    </td>
+			                </tr>
+			            </tbody>
+			        </table>	 
+			           			
+	    		</div>	
+	    		    		
+	    	</div>
+	    	
+	    </div>
+	    
+	</body>
+</html>

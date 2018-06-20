@@ -13,9 +13,6 @@ public abstract class AbstractTsSegmenter {
 	// TS段的持续时间, 秒
 	public static final int TS_DURATION = 5;        
 	
-	// 减少TS adsdirectory码率，指定显示的帧编号，5-10个PES分组
-	public static final int TS_PES_AU_NUM = 3;    
-
 	// video
 	public int fps; 				//帧数
 	
@@ -58,11 +55,6 @@ public abstract class AbstractTsSegmenter {
 		this.fps = 25;
 	}
 	
-	public void setPts(long pts) {
-		this.pts = pts;
-		this.ptsBase = 0L;
-	}
-	
 	public int getFrameNum() {
 		return frameNum;
 	}
@@ -96,16 +88,16 @@ public abstract class AbstractTsSegmenter {
 	}
 	
 	// 分段
-	protected abstract byte[] segment(byte rawDataType, byte[] rawData);
+	protected abstract byte[] segment(byte rawDataType, byte[] rawData, byte[] reserved);
 	
 	
-	public byte[] getTsBuf(byte rawDataType, byte[] rawData) {
+	public byte[] getTsBuf(byte rawDataType, byte[] rawData, byte[] reserved) {
 		byte[] newRawData = transcoding(rawDataType, rawData );
-		return segment(rawDataType, newRawData );
+		return segment(rawDataType, newRawData, reserved);
 	}
 	
 	public abstract void close();
 	
-	public abstract void prepare4nextTs();
+	public abstract void prepare4NextTs();
 	
 }

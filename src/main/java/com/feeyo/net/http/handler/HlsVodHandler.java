@@ -28,8 +28,8 @@ import com.feeyo.audio.codec.faac.FaacUtils;
 import com.feeyo.hls.HlsLiveStreamMagr;
 import com.feeyo.hls.ts.segmenter.AacTranscodingTsSegmenter;
 import com.feeyo.net.http.util.HttpUtil;
+import com.feeyo.net.http.util.OssUtil;
 import com.feeyo.net.udp.packet.V5PacketType;
-import com.feeyo.oss.OSSOperation;
 
 /**
  *  vod stream request handler
@@ -42,7 +42,7 @@ public class HlsVodHandler implements IRequestHandler {
 	private final Logger LOGGER = LoggerFactory.getLogger(HlsVodHandler.class);
 	
 	
-	private static final String regex = "^/vod/\\w+/\\w+\\.(m3u8|ts)$";
+	private static final String regex = "^/hls/vod/\\w+/\\w+\\.(m3u8|ts)$";
     private static final int VOD_CACHE_TIME = 1000 * 60;
 
     private ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -72,8 +72,8 @@ public class HlsVodHandler implements IRequestHandler {
 
         
         String[] path = request.getUri().split("/");
-        String alias = path[2];
-        final String reqFileName = path[3];
+        String alias = path[3];
+        final String reqFileName = path[4];
         
         Long streamId = HlsLiveStreamMagr.INSTANCE().getStreamIdByAlias(alias);
         if( streamId == null ) {
@@ -83,7 +83,7 @@ public class HlsVodHandler implements IRequestHandler {
         }
         
         
-        OSSOperation ossOperation = new OSSOperation();
+        OssUtil ossOperation = new OssUtil();
         byte[] content = null;
 
         if (reqFileName.endsWith(".m3u8")) {
@@ -140,12 +140,12 @@ public class HlsVodHandler implements IRequestHandler {
         long timeMillis = System.currentTimeMillis();
 
         DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-        response.headers().add(HttpHeaders.Names.DATE, HttpUtil.getDateString(timeMillis));
-        response.headers().add(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(reqFileName));
-        response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.length);
-        response.headers().add(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(timeMillis));
-        response.headers().add(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(timeMillis + VOD_CACHE_TIME));
-        response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "max-age=" + (VOD_CACHE_TIME/1000));
+        response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(timeMillis));
+        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(reqFileName));
+        response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
+        response.headers().set(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(timeMillis));
+        response.headers().set(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(timeMillis + VOD_CACHE_TIME));
+        response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age=" + (VOD_CACHE_TIME/1000));
 
         response.setContent(ChannelBuffers.copiedBuffer(content));
 
@@ -160,7 +160,7 @@ public class HlsVodHandler implements IRequestHandler {
         
     	final String wavFileName = reqFileName.replace(".m3u8",".wav");
         
-        final OSSOperation ossOperation = new OSSOperation();
+        final OssUtil ossOperation = new OssUtil();
         ObjectMetadata objectMetadata = ossOperation.getObjectMetadata(wavFileName, streamId);
         
         final AacTranscodingTsSegmenter tsSegmenter = new AacTranscodingTsSegmenter();
@@ -212,10 +212,10 @@ public class HlsVodHandler implements IRequestHandler {
 					for (int i = 0; i < tsNum;) {
 						
 						if ( readBytes(inputStream, frameBuf) > 0 ) {
-							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, frameBuf);
+							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, frameBuf, null);
 
 						} else {
-							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, FaacUtils.ZERO_PCM_DATA);
+							tsSegment = tsSegmenter.getTsBuf(V5PacketType.PCM_STREAM, FaacUtils.ZERO_PCM_DATA, null);
 						}
 
                         if (tsSegment != null) {

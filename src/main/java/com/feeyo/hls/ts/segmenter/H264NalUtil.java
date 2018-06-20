@@ -1,10 +1,10 @@
 package com.feeyo.hls.ts.segmenter;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.feeyo.net.udp.test.TestDataUtil;
+import com.feeyo.net.udp.packet.ByteUtil;
+import com.feeyo.test.TestDataUtil;
 import com.google.common.primitives.Bytes;
 /**
  * 判断H264帧类型
@@ -85,7 +85,7 @@ public class H264NalUtil {
              0x1fffffff,0x3fffffff,0x7fffffff,0xffffffff};  
 	
 	public static int getPesFrameType(byte[] avcData) {
-		List<Integer> delimiters = kmp(avcData, NAL_DELIMITER);
+		List<Integer> delimiters = ByteUtil.kmp(avcData, NAL_DELIMITER);
 		if(!delimiters.isEmpty()) {
 			int pos = delimiters.get(delimiters.size() -1) + NAL_DELIMITER.length + 1;
 			if(avcData.length < pos + 4 && delimiters.size() >= 2) {
@@ -96,41 +96,6 @@ public class H264NalUtil {
 		}
 		return -1;
 	}
-	
-	
-	//KMP匹配子串 	返回的index计数从0开始
-	public static List<Integer> kmp(byte[] src, byte[] dest){//str文本串  dest 模式串
-		List<Integer> indexPoses = new ArrayList<Integer>();
-		if(src.length <0 || dest.length > src.length)
-			return indexPoses;
-		
-		//计算next[]
-		int[] next = new int[dest.length];
-        next[0] = 0;
-        for(int i = 1,j = 0; i < dest.length; i++){
-            while(j > 0 && dest[j] != dest[i]){
-                j = next[j - 1];
-            }
-            if(dest[i] == dest[j]){
-                j++;
-            }
-            next[i] = j;
-        }
-        
-        for(int i = 0, j = 0; i < src.length; i++){
-            while(j > 0 && src[i] != dest[j]){
-                j = next[j - 1];
-            }
-            if(src[i] == dest[j]){
-                j++;
-            }
-            if(j == dest.length){
-            	indexPoses.add(i-j+1);
-            	j = 0;
-            }
-        }
-        return indexPoses;
-    }
 	
 	private static int getFrameType(byte[] buff) {
 		NauBst s = new NauBst();

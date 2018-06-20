@@ -1,0 +1,147 @@
+
+/* NAV CSS */
+
+#nav {
+	width: 100%;
+	background-color: #f2f2f2;
+	border-bottom: 1px solid #ccc;  
+	
+	height: 40px; 
+	line-height: 40px;
+}
+
+#nav ul {
+	width: 98%;
+	margin: 0 auto; /*水平居中*/
+	list-style-type: none;
+}
+
+#nav li {
+  float: left; /*li是block元素，我们知道block元素是会独占一行的，如果要让它们在一行，那就要加上float*/
+  	border-right: 1px solid #ccc; 
+}
+
+#nav li a {
+	display: block;
+	text-decoration: none;
+	font-weight: bold;
+	color: #069;
+	
+	padding-left: 16px; 
+  	padding-right: 16px; 
+}
+
+#nav li:first-child a {
+	
+}
+
+#nav li a:hover {
+	color: #c00;
+	background-color: #fff; 
+}
+
+
+/* Container CSS */
+
+.container {
+
+	position: relative;
+	left: 10%;
+	width: 80%;
+    text-align: center;
+    font-size: 18px;
+    color: rgb(0, 0, 0);
+    float: left;
+    margin-bottom:8px;
+}
+
+
+
+
+/* Panel CSS */
+
+.panel {
+	width: 100%;
+	margin-top:20px;
+	display:block;
+}
+
+.panel-head {
+	padding:10px 15px;
+	line-height:20px;
+	color:#333;
+	font-size:14px;
+	border: 1px solid #ddd;
+	border-radius: 3px 3px 0 0;
+	background-color: #F8F8F8;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#f5f5f5,endColorstr=#e8e8e8,GradientType=0);
+}
+
+.panel-body {
+	border:1px solid #ddd;
+	padding:15px;
+}
+
+.panel-default {
+    border-color: #ddd;
+}
+
+.panel {
+    background-color: #fff;
+    border: 0px solid transparent;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0px;
+}
+.panel-default > .panel-heading {
+    background-color: #F5F5F5;
+    background-repeat: repeat-x;
+    border-color: #ddd;
+    color: #333;
+}
+.panel-default > .panel-heading {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+    color: #333;
+}
+.panel-heading {
+    min-height: 21px;
+    position: relative;
+    text-align: right;
+}
+.panel-heading {
+    border-bottom: 1px solid transparent;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    padding: 10px 15px;
+}
+.panel-title {
+    float: left;
+    line-height: 20px;
+    margin: 0;
+    padding: 0;
+}
+.panel-title {
+    color: inherit;
+    font-size: 16px;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+.panel-title .glyphicon {
+    font-size: 14px;
+    margin-right: 8px;
+}
+.glyphicon {
+    display: inline-block;
+    font-family: "Glyphicons Halflings";
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    position: relative;
+    top: 1px;
+}
+
+.panel-body {
+    overflow-y: auto;
+    padding: 15px;
+}

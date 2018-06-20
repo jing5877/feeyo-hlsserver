@@ -224,6 +224,36 @@ public class TsWriter {
 		return tsBuf;
 	}	
 	
+	
+	/**
+	 * write a PTS or DTS
+	 * 
+	 * @see https://github.com/kynesim/tstools/blob/master/ts.c
+	 * @see https://www.ffmpeg.org/doxygen/0.6/mpegtsenc_8c-source.html
+	 */
+	private int write_pts_dts(byte[] buf, int offset, int guard_bits, long value) {
+		
+		
+		//		tsBuf[offset++] = (byte) (((pts >> 29) & 0xFE) | 0x31);
+		//		tsBuf[offset++] = (byte) ((pts >> 22) & 0xff);
+		//		tsBuf[offset++] = (byte) (((pts >> 14) & 0xFE) | 0x01);
+		//		tsBuf[offset++] = (byte) ((pts >> 7) & 0xff);
+		//		tsBuf[offset++] = (byte) ((pts << 1) & 0xFE | 0x01);
+
+		//
+		int pts1 = (int) ((value >> 30) & 0x07);
+		int pts2 = (int) ((value >> 15) & 0x7FFF);
+		int pts3 = (int) (value & 0x7FFF);
+		
+		buf[offset++] = (byte) ((guard_bits << 4) | (pts1 << 1) | 0x01);
+		buf[offset++] = (byte) ((pts2  & 0x7F80) >> 7);
+		buf[offset++] = (byte) (((pts2 & 0x007F) << 1) | 0x01);
+		buf[offset++] = (byte) ((pts3  & 0x7F80) >> 7);
+		buf[offset++]=  (byte) (((pts3 & 0x007F) << 1) | 0x01);
+		
+		return offset;
+	}
+	
 	public byte[] writeAAC(boolean isFirstPes, byte[] aacBuf, int length, long pts, long dts) {
 		byte[] buf = aacBuf;
 		if ( aacBuf.length > length ) {
@@ -277,6 +307,7 @@ public class TsWriter {
 			boolean isFristTs = true;
 		
 			boolean isAudio = frame.isAudio;
+			
 			long pts = frame.pts;
 			long dts = frame.dts;
 			byte[] frameBuf = frame.buf;
@@ -303,7 +334,8 @@ public class TsWriter {
 				if ( isFristTs ) {
 					
 					 tsBuf[offset++] = 0x07;                						 							// size
-					 tsBuf[offset++] |= isFirstPes ? (byte)0x50 : (byte)0x10;            						// flag bits 0001 0000 , 0x10
+					 tsBuf[offset++] |= isFirstPes ? 0x50 : (isAudio && frameDataType == FrameDataType.MIXED ? 0x50 : 0x10);            						
+					 																							// flag bits 0001 0000 , 0x10
 					 																							// flag bits 0101 0000 , 0x50
 					 /* write PCR */
 					 long pcr = pts;
@@ -332,27 +364,27 @@ public class TsWriter {
 						tsBuf[offset++] = 0x00; // 为0表示不受限制
 						tsBuf[offset++] = 0x00; // 16:
 					}
+		
 					
 					// PES 包头识别标志
-					tsBuf[offset++] = (byte) 0x80; 						
-					tsBuf[offset++] = (byte) 0xc0; 	// (1100 0000) PTS DTS						
-					tsBuf[offset++] = (byte) header_size;
-	
+					byte PTS_DTS_flags =  (byte) 0xc0;
+					tsBuf[offset++] = (byte) 0x80; 			// 0x80 no flags set,  0x84 just data alignment indicator flag set	
+					tsBuf[offset++] = PTS_DTS_flags; 		// 0xC0 PTS & DTS,  0x80 PTS,  0x00 no PTS/DTS					
+					tsBuf[offset++] = (byte) header_size;	// 0x0A PTS & DTS,  0x05 PTS,  0x00 no
 					
-					/* write pts */
-					tsBuf[offset++] = (byte) (((pts >> 30) & 0xFE) | 0x31);
-					tsBuf[offset++] = (byte) ((pts >> 22) & 0xff);
-					tsBuf[offset++] = (byte) (((pts >> 14) & 0xFE) | 0x01);
-					tsBuf[offset++] = (byte) ((pts >> 7) & 0xff);
-					tsBuf[offset++] = (byte) ((pts << 1) & 0xFE | 0x01);
-	
-					/* write dts */
-					tsBuf[offset++] = (byte) (((dts >> 29) & 0xFE) | 0x11);
-					tsBuf[offset++] = (byte) ((dts >> 22) & 0xff);
-					tsBuf[offset++] = (byte) (((dts >> 14) & 0xFE) | 0x01);
-					tsBuf[offset++] = (byte) ((dts >> 7) & 0xff);
-					tsBuf[offset++] = (byte) ((dts << 1) & 0xFE | 0x01);
-		     		
+					// write pts & dts
+					if ( PTS_DTS_flags == (byte)0xc0 ) {
+						
+						//PTS_DTS_flags >> 6
+						offset = write_pts_dts(tsBuf, offset, 3, pts);
+						offset = write_pts_dts(tsBuf, offset, 1, dts);
+						
+					} else if ( PTS_DTS_flags == (byte)0x80 ) {
+						
+						offset = write_pts_dts(tsBuf, offset, 2, pts);
+					}
+
+					
 		     		// H264 NAL
 					if ( !isAudio && Bytes.indexOf(frameBuf, H264_NAL ) == -1 ) {
 		     			System.arraycopy(H264_NAL, 0, tsBuf, offset++, H264_NAL.length);
@@ -437,6 +469,8 @@ public class TsWriter {
 			
 		return tsFileBuffer;
 	}
+	
+	
 	
 	public void reset() {
 		mPatContinuityCounter = 0;

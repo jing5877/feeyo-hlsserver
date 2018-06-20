@@ -1,5 +1,8 @@
 package com.feeyo.net.udp.packet;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ByteUtil {
 	
 	// 将字节数组 转换为 十六进制字符串
@@ -98,6 +101,51 @@ public class ByteUtil {
 	            | (((long) b0) & 0xFF);
 	}
 	
+	public static byte[] longToBytes(long i) {
+		return new byte[] {
+				(byte) ((i >> 56) & 0xFF),  
+				(byte) ((i >> 48) & 0xFF),  
+				(byte) ((i >> 40) & 0xFF),  
+				(byte) ((i >> 32) & 0xFF),  
+				(byte) ((i >> 24) & 0xFF),  
+			    (byte) ((i >> 16) & 0xFF),     
+			    (byte) ((i >> 8) & 0xFF),     
+			    (byte) (i & 0xFF)  
+		};
+	}
+	
+	public static List<Integer> kmp(byte[] src, byte[] pattern){
+		List<Integer> indexs = new ArrayList<Integer>();
+		if(src.length <0 || pattern.length > src.length)
+			return indexs;
+		
+		//计算next[]
+		int[] next = new int[pattern.length];
+        next[0] = 0;
+        for(int i = 1,j = 0; i < pattern.length; i++){
+            while(j > 0 && pattern[j] != pattern[i]){
+                j = next[j - 1];
+            }
+            if(pattern[i] == pattern[j]){
+                j++;
+            }
+            next[i] = j;
+        }
+        
+        for(int i = 0, j = 0; i < src.length; i++){
+            while(j > 0 && src[i] != pattern[j]){
+                j = next[j - 1];
+            }
+            if(src[i] == pattern[j]){
+                j++;
+            }
+            if(j == pattern.length){
+            	indexs.add(i-j+1);
+            	j = 0;
+            }
+        }
+        return indexs;
+    }
 	
 	public static void main(String[] args) {
 		

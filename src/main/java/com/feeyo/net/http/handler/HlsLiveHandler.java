@@ -41,7 +41,10 @@ public class HlsLiveHandler implements IRequestHandler {
 	private static Logger LOGGER = LoggerFactory.getLogger( HlsLiveHandler.class );
     
     private static final String LIVE_M3U8 = "live.m3u8";
-    private static final int LIVE_CACHE_TIME = 1000 * 30;
+    
+    private static final int TS_HTTP_CACHE_TIME_MS = 1000 * 30;		//
+    
+    private static final byte[] TS_PREPARING = "ts segment preparing ...".getBytes();
 
     @Override
     public Type getType() {
@@ -92,79 +95,104 @@ public class HlsLiveHandler implements IRequestHandler {
             	 clientSession = liveStream.getClientSessionsById( sessionId.get(0) );
             }
             
-            LOGGER.info("request m3u8 file,  uri={}, clientSession={}", uri, clientSession);
+            LOGGER.debug("request m3u8 file,  uri={}, clientSession={}", uri, clientSession);
             
             // 重定向, 解决标识问题
             if ( clientSession == null  ) {
             	
-            	
+            	// TS 数量不足
             	clientSession = liveStream.newClientSession();		
+            	if ( clientSession == null ) {
+            		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+            		response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, TS_PREPARING.length);
+            		response.setContent(ChannelBuffers.copiedBuffer(TS_PREPARING));
+            	    e.getChannel().write(response); 
+            		return;
+            	}
                  
             	StringBuffer url = new StringBuffer(50);
             	url.append( path ).append("?sid=").append( clientSession.getId() );
             	
-            	LOGGER.info("response redirect, url={}", url.toString());
+            	LOGGER.debug("response redirect, url={}", url.toString());
             	
             	HttpResponse response =  HttpUtil.redirectFound( url.toString() );
     			e.getChannel().write(response);
     			return;
+    			
+            } else {
+            	// 
+            	long now = System.currentTimeMillis();
+            	if ( now - clientSession.getMtime() > ( 30 * 1000 ) ) {
+            		LOGGER.warn("session id= {},  no request for a long time, reset tsIndexs. ",   clientSession.getId() );
+            		clientSession.reset();
+            	}
             }
             
+
             M3U8 m3u8 = clientSession.getM3u8File( requestFile );
             
             DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
             byte[] content = m3u8.getBuf();
             long fileMTime = m3u8.getTime();
 
-            response.headers().add(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
-            response.headers().add(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
-            response.headers().add(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
-            response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.length);
-            response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=5");	//
+            response.headers().set(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
+            response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
+            response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
+            response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
+            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=4");	//
             response.setContent(ChannelBuffers.copiedBuffer(content));
             e.getChannel().write(response);
+
         	
         // 1...N.ts
         } else {
         	
-        	LOGGER.info("request ts file, uri={} ", uri);
+        	LOGGER.debug("request ts file, uri={} ", uri);
         	
         	int tsIndex = Integer.valueOf(requestFile.substring(0, requestFile.indexOf(".ts"))).intValue();
         	
-        	// 
+        	// Check the browser cache time
         	String ifModifiedSince = request.headers().get( HttpHeaders.Names.IF_MODIFIED_SINCE );
             if ( ifModifiedSince != null && !ifModifiedSince.isEmpty() ) {
                 SimpleDateFormat dateFormatter = new SimpleDateFormat(HttpUtil.HTTP_DATE_FORMAT, Locale.US);
                 Date mdate = dateFormatter.parse(ifModifiedSince);
                 int mdateSec = (int)(mdate.getTime()/1000L);
 
-             	TsSegment tsSegment = liveStream.fetchTsSegment( tsIndex );
+             	TsSegment tsSegment = liveStream.fetchTsSegmentByIndex( tsIndex );
              	int fileMTimeSec = tsSegment != null ? (int) ( tsSegment.getCtime() / 1000L) : 0;
                 if (mdateSec == fileMTimeSec) {
                     HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
-                    response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "max-age=1");
+                    response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age=1");
                     HttpUtil.sendNotModified(ctx, response);
                     return;
                 }
             }
             
-            TsSegment tsSegment = liveStream.fetchTsSegment( tsIndex );
+            TsSegment tsSegment = liveStream.fetchTsSegmentByIndex( tsIndex );
             if ( tsSegment == null ) {
+            	LOGGER.warn("##streamId={} lastIndex={},  get ts={} not found ", liveStream.getStreamId(), liveStream.getLastIndex(), tsIndex);
             	HttpUtil.sendError(ctx,HttpResponseStatus.NOT_FOUND);
             	return;
             }
             
+            //
          	DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
             byte[] content = tsSegment.getData();
             long fileMTime = tsSegment.getCtime();
 
-            response.headers().add(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
-            response.headers().add(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
-            response.headers().add(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
-            response.headers().add(HttpHeaders.Names.CONTENT_LENGTH, content.length);
-            response.headers().add(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(fileMTime));
-            response.headers().add(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(fileMTime + LIVE_CACHE_TIME));	// 相对当前的过期时间，以分钟为单位
-            response.headers().add(HttpHeaders.Names.CACHE_CONTROL, "max-age="+( LIVE_CACHE_TIME / 1000));
+            /*
+              HTTP CACHE
+              1、Last-Modified
+              2、Expires
+              3、Cache-Control ，
+             */
+            response.headers().set(HttpHeaders.Names.SERVER, Versions.SERVER_VERSION);
+            response.headers().set(HttpHeaders.Names.DATE, HttpUtil.getDateString(fileMTime));
+            response.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpUtil.getMimeType(requestFile));
+            response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.length);
+            response.headers().set(HttpHeaders.Names.LAST_MODIFIED, HttpUtil.getDateString(fileMTime));
+            response.headers().set(HttpHeaders.Names.EXPIRES, HttpUtil.getDateString(fileMTime + TS_HTTP_CACHE_TIME_MS));	// 相对当前的过期时间，以分钟为单位
+            response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age="+( TS_HTTP_CACHE_TIME_MS / 1000));			// 秒
             
             response.setContent(ChannelBuffers.copiedBuffer(content));
             e.getChannel().write(response);
